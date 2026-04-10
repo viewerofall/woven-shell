@@ -22,7 +22,7 @@ Lil complete shell for woven with custom shit since **I** felt like it.
 
 ## Requirements
 
-- Niri compositor (or any wlr-layer-shell compositor)
+- Sway compositor (woven-bar **relies** on it for now you cant use it without sway)
 - Rust toolchain (stable)
 - `pam` development headers (for woven-lock, when it lands)
 
