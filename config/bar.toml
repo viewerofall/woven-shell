@@ -1,0 +1,18 @@
+# woven-bar configuration
+# ~/.config/woven-shell/bar.toml
+
+height   = 34
+position = "top"
+
+[theme]
+background = "#0a0010"
+foreground = "#cdd6f4"
+accent     = "#c792ea"
+dim        = "#2a1545"
+radius     = 7
+font_size  = 13.0
+
+[modules]
+left   = ["activities", "workspaces", "window_title"]
+center = ["clock"]
+right  = ["systray", "notifications", "media", "temp", "cpu", "memory", "disk", "network", "audio", "battery", "control_center"]
