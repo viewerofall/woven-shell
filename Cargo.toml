@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/woven-bar", "crates/woven-cc", "crates/woven-power"]
+members = ["crates/woven-bar", "crates/woven-cc", "crates/woven-power", "crates/woven-wall", "crates/woven-pick", "crates/woven-lock", "crates/woven-launch"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -27,6 +27,9 @@ serde_json = "1"
 # logging
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# auth
+pam              = "0.8"
 
 # system
 rustix           = { version = "1", features = ["event", "mm", "fs", "time"] }

@@ -1,0 +1,31 @@
+# woven-lock config — ~/.config/woven-shell/lock.toml
+
+# ── Background ───────────────────────────────────────────────────────────────
+# Picks a random wallpaper from the directory each time you lock.
+# Independent from woven-wall.
+[background]
+type = "random"
+dir  = "~/Pictures/Wallpapers"
+
+# Or use a fixed image:
+# [background]
+# type = "image"
+# path = "~/Pictures/Wallpapers/my-wallpaper.jpg"
+
+# ── Lock settings ────────────────────────────────────────────────────────────
+[lock]
+blur_radius    = 20
+show_clock     = true
+clock_format   = "%H:%M"
+show_date      = true
+date_format    = "%A, %B %e"
+
+# Colors
+text_color     = "#cdd6f4"
+accent_color   = "#cba6f7"
+error_color    = "#f07178"
+
+# Animations
+fade_in_ms     = 200
+fade_out_ms    = 200
+shake_on_error = true

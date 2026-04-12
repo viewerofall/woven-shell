@@ -1,0 +1,25 @@
+[package]
+name    = "woven-lock"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "woven-lock"
+path = "src/main.rs"
+
+[dependencies]
+anyhow                 = { workspace = true }
+chrono                 = { workspace = true }
+fontdue                = { workspace = true }
+image                  = { workspace = true, features = ["png"] }
+pam                    = { workspace = true }
+rustix                 = { workspace = true }
+serde                  = { workspace = true }
+smithay-client-toolkit = { workspace = true }
+tiny-skia              = { workspace = true }
+toml                   = "0.8"
+tracing                = { workspace = true }
+tracing-subscriber     = { workspace = true }
+wayland-client         = { workspace = true }
+wayland-protocols-wlr  = { workspace = true }
+xkeysym                = "0.2"

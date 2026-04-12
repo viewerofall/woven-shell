@@ -1,0 +1,28 @@
+[package]
+name        = "woven-pick"
+version     = "0.1.0"
+edition     = "2021"
+description = "woven-shell wallpaper picker — full-screen overlay GUI for browsing and applying wallpapers"
+
+[[bin]]
+name = "woven-pick"
+path = "src/main.rs"
+
+[dependencies]
+anyhow             = { workspace = true }
+serde              = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+tiny-skia          = { workspace = true }
+fontdue            = { workspace = true }
+rustix             = { workspace = true }
+crossbeam-channel  = { workspace = true }
+
+smithay-client-toolkit = { workspace = true }
+wayland-client         = { workspace = true }
+wayland-protocols      = { workspace = true }
+wayland-protocols-wlr  = { workspace = true }
+
+image    = { workspace = true, features = ["png"] }
+toml     = "0.8"
+xkeysym  = "0.2"

@@ -1,0 +1,26 @@
+[package]
+name        = "woven-launch"
+version     = "0.1.0"
+edition     = "2021"
+description = "woven-shell app launcher — elegant overlay with fuzzy search, calculator, and command runner"
+
+[[bin]]
+name = "woven-launch"
+path = "src/main.rs"
+
+[dependencies]
+anyhow             = { workspace = true }
+serde              = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+tiny-skia          = { workspace = true }
+fontdue            = { workspace = true }
+rustix             = { workspace = true }
+
+smithay-client-toolkit = { workspace = true }
+wayland-client         = { workspace = true }
+wayland-protocols      = { workspace = true }
+wayland-protocols-wlr  = { workspace = true }
+
+toml    = "0.8"
+xkeysym = "0.2"
