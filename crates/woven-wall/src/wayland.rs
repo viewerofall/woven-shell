@@ -66,6 +66,12 @@ impl WallSurface {
         self.state.outputs.iter().filter(|o| o.configured).count()
     }
 
+    pub fn first_output_size(&self) -> Option<(u32, u32)> {
+        self.state.outputs.iter()
+            .find(|o| o.configured && o.width > 0 && o.height > 0)
+            .map(|o| (o.width, o.height))
+    }
+
     pub fn dispatch(&mut self) -> Result<()> {
         if let Err(e) = self.queue.flush() {
             tracing::debug!("wall flush: {e}");

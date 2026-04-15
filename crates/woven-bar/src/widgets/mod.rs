@@ -13,6 +13,7 @@ pub mod temp;
 pub mod media;
 pub mod notifications;
 pub mod control_center;
+pub mod weather;
 
 use tiny_skia::Pixmap;
 use crate::config::Theme;

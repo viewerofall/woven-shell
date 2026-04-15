@@ -10,8 +10,8 @@ path = "src/main.rs"
 [dependencies]
 anyhow                 = { workspace = true }
 chrono                 = { workspace = true }
-fontdue                = { workspace = true }
 image                  = { workspace = true, features = ["png"] }
+woven-common           = { path = "../woven-common" }
 pam                    = { workspace = true }
 rustix                 = { workspace = true }
 serde                  = { workspace = true }

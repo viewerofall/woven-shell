@@ -143,6 +143,8 @@ impl LockSurface {
                     stride as i32, wl_shm::Format::Argb8888,
                 )
                 .context("lock: create_buffer failed")?;
+            // zero-fill first so stale pool data never leaks through
+            canvas.fill(0);
             let n = canvas.len().min(pixels.len());
             canvas[..n].copy_from_slice(&pixels[..n]);
             let surf = out.layer_surface.wl_surface();

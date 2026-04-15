@@ -159,6 +159,7 @@ pub struct SlideshowSource {
     transition_ms:   u64,
     last_shown:      Instant,
     transition_start: Option<Instant>,
+    changed:         bool,
 }
 
 impl SlideshowSource {
@@ -216,6 +217,7 @@ impl SlideshowSource {
             transition_ms:    (transition_secs * 1000.0) as u64,
             last_shown:       Instant::now(),
             transition_start: None,
+            changed:          true,
         })
     }
 
@@ -243,6 +245,7 @@ impl SlideshowSource {
             self.current          = next;
             self.transition_start = None;
             self.last_shown       = Instant::now();
+            self.changed          = true;
             tracing::debug!("slideshow: transitioned to index {}", self.index);
         }
     }
@@ -350,6 +353,10 @@ impl Source for SlideshowSource {
 
     fn frame_delay_ms(&self) -> u64 {
         if self.transition_start.is_some() { 33 } else { 500 }
+    }
+
+    fn wallpaper_changed(&mut self) -> bool {
+        if self.changed { self.changed = false; true } else { false }
     }
 }
 

@@ -282,17 +282,12 @@ impl LockRenderer {
     fn draw_background(&self, pixmap: &mut Pixmap, w: u32, h: u32) {
         if let Some((bw, bh, ref bgra)) = self.bg_cache {
             if bw == w && bh == h && bgra.len() == (w * h * 4) as usize {
-                // blit BGRA background directly into pixmap
-                let pixels = pixmap.pixels_mut();
-                for i in 0..pixels.len() {
-                    let off = i * 4;
-                    if off + 3 >= bgra.len() { break; }
-                    let b = bgra[off];
-                    let g = bgra[off + 1];
-                    let r = bgra[off + 2];
-                    let a = bgra[off + 3];
-                    pixels[i] = tiny_skia::PremultipliedColorU8::from_rgba(r, g, b, a)
-                        .unwrap_or(pixels[i]);
+                // copy BGRA bytes directly — force fully opaque so no
+                // semi-transparent pixels leave holes for stale data
+                let data = pixmap.data_mut();
+                data.copy_from_slice(bgra);
+                for chunk in data.chunks_exact_mut(4) {
+                    chunk[3] = 255; // force opaque
                 }
                 return;
             }

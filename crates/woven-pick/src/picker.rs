@@ -117,7 +117,7 @@ impl Picker {
             key::Return | key::KP_Enter => { self.apply_selected(); }
             key::BackSpace => {
                 self.search.pop();
-                self.text.clear_dynamic();
+                self.text.clear_dynamic_cache();
                 self.refilter();
             }
             key::Up => {
@@ -153,7 +153,7 @@ impl Picker {
                     let s = s.chars().filter(|c| !c.is_control()).collect::<String>();
                     if !s.is_empty() {
                         self.search.push_str(&s);
-                        self.text.clear_dynamic();
+                        self.text.clear_dynamic_cache();
                         self.refilter();
                     }
                 }

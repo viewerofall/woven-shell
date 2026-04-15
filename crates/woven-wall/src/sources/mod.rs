@@ -24,6 +24,8 @@ pub trait Source: Send {
     fn frame_delay_ms(&self) -> u64;
     /// Handle an IPC command string. Default: no-op.
     fn handle_ipc(&mut self, _cmd: &str) {}
+    /// Returns true once after the wallpaper image changed (for theme extraction).
+    fn wallpaper_changed(&mut self) -> bool { false }
 }
 
 pub fn build(kind: &WallpaperKind) -> Result<Box<dyn Source>> {

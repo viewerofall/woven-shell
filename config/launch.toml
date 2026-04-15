@@ -1,0 +1,18 @@
+# woven-launch config — ~/.config/woven-shell/launch.toml
+
+[launcher]
+width          = 620
+max_results    = 8
+
+# Colors — TWM aesthetic
+background       = "#0a0010"
+panel_background = "#0f0020"
+text_color       = "#e8e0f0"
+text_dim         = "#8888aa"
+accent_color     = "#c792ea"
+selection_color  = "#1a0035"
+border_color     = "#c792ea"
+
+# Features
+calculator     = true
+command_runner = true

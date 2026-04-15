@@ -18,6 +18,7 @@
 mod wayland;
 mod config;
 mod sources;
+mod theme;
 
 use anyhow::{bail, Result};
 use std::io::{Read, Write};
@@ -75,16 +76,38 @@ fn main() -> Result<()> {
     let mut last_cfg_mtime = if from_config { config_mtime() } else { None };
     let mut last_cfg_check = Instant::now();
 
+    // extract theme from the initial wallpaper
+    let first_size = surface.first_output_size();
+    if let Some((fw, fh)) = first_size {
+        let frame = src.frame(fw, fh);
+        theme::extract_and_write(&frame, fw, fh);
+        let _ = src.wallpaper_changed(); // consume the flag
+    }
+
     loop {
         surface.dispatch()?;
-        surface.present_for_each(|w, h| src.frame(w, h))?;
+        let mut last_frame: Option<(Vec<u8>, u32, u32)> = None;
+        surface.present_for_each(|w, h| {
+            let f = src.frame(w, h);
+            last_frame = Some((f.clone(), w, h));
+            f
+        })?;
+
+        // extract theme when wallpaper changes
+        if src.wallpaper_changed() {
+            if let Some((ref frame, w, h)) = last_frame {
+                theme::extract_and_write(frame, w, h);
+            }
+        }
 
         // drain IPC commands
         loop {
             match listener.accept() {
                 Ok((mut stream, _)) => {
-                    let mut buf = String::new();
-                    let _ = stream.read_to_string(&mut buf);
+                    let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(50)));
+                    let mut buf = [0u8; 512];
+                    let n = stream.read(&mut buf).unwrap_or(0);
+                    let buf = String::from_utf8_lossy(&buf[..n]).to_string();
                     let cmd = buf.trim();
                     if !cmd.is_empty() {
                         tracing::info!("wall: IPC ← {cmd}");

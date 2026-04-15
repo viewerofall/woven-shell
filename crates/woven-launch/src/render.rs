@@ -4,6 +4,7 @@ use crate::calc;
 use crate::config::LauncherSettings;
 use crate::desktop::DesktopEntry;
 use crate::draw::*;
+use crate::icons::IconCache;
 use crate::search::{self, SearchResult};
 use crate::text::TextRenderer;
 use std::time::Instant;
@@ -30,10 +31,23 @@ pub struct LaunchRenderer {
     pub should_close: bool,
     pub launch_exec: Option<String>,
 
+    // scroll state — index of first visible result
+    pub scroll_offset: usize,
+    pub hovered: Option<usize>, // index into results
+
     pub text: TextRenderer,
+    pub icons: IconCache,
     cursor_blink: Instant,
     pub dirty: bool,
     cfg: LauncherSettings,
+
+    // cached panel geometry for hit testing
+    panel_x: f32,
+    panel_y: f32,
+    panel_w: f32,
+    results_y: f32, // y where results start on screen
+    screen_w: u32,
+    screen_h: u32,
 }
 
 impl LaunchRenderer {
@@ -46,16 +60,25 @@ impl LaunchRenderer {
             results,
             should_close: false,
             launch_exec: None,
+            scroll_offset: 0,
+            hovered: None,
             text: TextRenderer::new(),
+            icons: IconCache::new(),
             cursor_blink: Instant::now(),
             dirty: true,
             cfg,
+            panel_x: 0.0,
+            panel_y: 0.0,
+            panel_w: 0.0,
+            results_y: 0.0,
+            screen_w: 0,
+            screen_h: 0,
         }
     }
 
     pub fn push_char(&mut self, ch: char) {
         self.query.push(ch);
-        self.text.clear_dynamic();
+        self.text.clear_dynamic_cache();
         self.refilter();
         self.dirty = true;
         self.cursor_blink = Instant::now();
@@ -63,7 +86,7 @@ impl LaunchRenderer {
 
     pub fn pop_char(&mut self) {
         self.query.pop();
-        self.text.clear_dynamic();
+        self.text.clear_dynamic_cache();
         self.refilter();
         self.dirty = true;
         self.cursor_blink = Instant::now();
@@ -71,20 +94,105 @@ impl LaunchRenderer {
 
     pub fn clear_query(&mut self) {
         self.query.clear();
-        self.text.clear_dynamic();
+        self.text.clear_dynamic_cache();
         self.refilter();
         self.dirty = true;
     }
 
     pub fn select_up(&mut self) {
-        if self.selected > 0 { self.selected -= 1; }
+        if self.selected > 0 {
+            self.selected -= 1;
+            self.ensure_visible();
+        }
         self.dirty = true;
     }
 
     pub fn select_down(&mut self) {
-        let max = self.visible_count().saturating_sub(1);
-        if self.selected < max { self.selected += 1; }
+        let max = self.results.len().saturating_sub(1);
+        if self.selected < max {
+            self.selected += 1;
+            self.ensure_visible();
+        }
         self.dirty = true;
+    }
+
+    pub fn page_up(&mut self) {
+        let page = self.cfg.max_results;
+        self.selected = self.selected.saturating_sub(page);
+        self.ensure_visible();
+        self.dirty = true;
+    }
+
+    pub fn page_down(&mut self) {
+        let page = self.cfg.max_results;
+        let max = self.results.len().saturating_sub(1);
+        self.selected = (self.selected + page).min(max);
+        self.ensure_visible();
+        self.dirty = true;
+    }
+
+    pub fn scroll(&mut self, delta: f64) {
+        if self.is_calc_mode() || self.is_cmd_mode() { return; }
+        let max_offset = self.results.len().saturating_sub(self.cfg.max_results);
+        if delta > 0.0 {
+            self.scroll_offset = (self.scroll_offset + 1).min(max_offset);
+        } else if delta < 0.0 {
+            self.scroll_offset = self.scroll_offset.saturating_sub(1);
+        }
+        // clamp selected to visible range
+        if self.selected < self.scroll_offset {
+            self.selected = self.scroll_offset;
+        } else if self.selected >= self.scroll_offset + self.cfg.max_results {
+            self.selected = self.scroll_offset + self.cfg.max_results - 1;
+        }
+        self.dirty = true;
+    }
+
+    pub fn handle_mouse_move(&mut self, mx: f64, my: f64) {
+        if self.is_calc_mode() || self.is_cmd_mode() { return; }
+        let hit = self.hit_test_result(mx, my);
+        if hit != self.hovered {
+            self.hovered = hit;
+            self.dirty = true;
+        }
+    }
+
+    pub fn handle_click(&mut self, mx: f64, my: f64) {
+        // click outside panel = close
+        let mx = mx as f32;
+        let my = my as f32;
+        if mx < self.panel_x || mx > self.panel_x + self.panel_w
+            || my < self.panel_y || my > self.panel_y + self.panel_height()
+        {
+            self.should_close = true;
+            return;
+        }
+
+        if self.is_calc_mode() || self.is_cmd_mode() { return; }
+
+        if let Some(idx) = self.hit_test_result(mx as f64, my as f64) {
+            self.selected = idx;
+            self.confirm();
+        }
+    }
+
+    fn hit_test_result(&self, mx: f64, my: f64) -> Option<usize> {
+        let mx = mx as f32;
+        let my = my as f32;
+        let inner_x = self.panel_x + PANEL_PAD;
+        let inner_w = self.panel_w - PANEL_PAD * 2.0;
+
+        if mx < inner_x || mx > inner_x + inner_w { return None; }
+
+        let vis = self.visible_count();
+        for i in 0..vis {
+            let abs_idx = self.scroll_offset + i;
+            let ry = self.results_y + i as f32 * (RESULT_H + RESULT_GAP);
+            if my >= ry && my < ry + RESULT_H {
+                return Some(abs_idx);
+            }
+        }
+        None
     }
 
     pub fn confirm(&mut self) {
@@ -130,7 +238,16 @@ impl LaunchRenderer {
         if self.is_calc_mode() || self.is_cmd_mode() {
             1
         } else {
-            self.results.len().min(self.cfg.max_results)
+            let remaining = self.results.len().saturating_sub(self.scroll_offset);
+            remaining.min(self.cfg.max_results)
+        }
+    }
+
+    fn ensure_visible(&mut self) {
+        if self.selected < self.scroll_offset {
+            self.scroll_offset = self.selected;
+        } else if self.selected >= self.scroll_offset + self.cfg.max_results {
+            self.scroll_offset = self.selected + 1 - self.cfg.max_results;
         }
     }
 
@@ -138,10 +255,12 @@ impl LaunchRenderer {
         if self.is_calc_mode() || self.is_cmd_mode() {
             self.results.clear();
             self.selected = 0;
+            self.scroll_offset = 0;
             return;
         }
         self.results = search::fuzzy_search(&self.entries, &self.query);
         self.selected = 0;
+        self.scroll_offset = 0;
     }
 
     fn panel_height(&self) -> f32 {
@@ -155,6 +274,8 @@ impl LaunchRenderer {
     /// Render the full overlay. Returns BGRA pixels.
     pub fn render(&mut self, w: u32, h: u32) -> Vec<u8> {
         self.dirty = false;
+        self.screen_w = w;
+        self.screen_h = h;
         let mut pixmap = Pixmap::new(w, h).expect("pixmap");
 
         // 1. Dim backdrop
@@ -165,6 +286,10 @@ impl LaunchRenderer {
         let panel_h = self.panel_height();
         let px = (w as f32 - panel_w) / 2.0;
         let py = (h as f32 - panel_h) / 2.0 - 40.0; // slightly above center
+
+        self.panel_x = px;
+        self.panel_y = py;
+        self.panel_w = panel_w;
 
         // 2. Panel background
         fill_rounded_rect(&mut pixmap, px, py, panel_w, panel_h, PANEL_R,
@@ -230,6 +355,8 @@ impl LaunchRenderer {
                 inner_w - 40.0, 1.0,
                 with_alpha(hex_color(&self.cfg.border_color), 0.12));
 
+            self.results_y = cy;
+
             if self.is_calc_mode() {
                 self.render_calc_result(&mut pixmap, inner_x, cy, inner_w);
             } else if self.is_cmd_mode() {
@@ -242,52 +369,78 @@ impl LaunchRenderer {
         // 6. Footer hints
         let footer_y = py + panel_h - FOOTER_H;
         let hint_color = with_alpha(hex_color(&self.cfg.text_dim), 0.5);
+
         let hints = if self.is_calc_mode() {
-            "= calculator mode    Esc close"
+            "= calculator mode    Esc close".to_string()
         } else if self.is_cmd_mode() {
-            "↵ run command    Esc close"
+            "↵ run command    Esc close".to_string()
+        } else if self.results.len() > self.cfg.max_results {
+            format!("↑↓ navigate    ↵ launch    Esc close    {} of {}",
+                self.selected + 1, self.results.len())
         } else {
-            "↑↓ navigate    ↵ launch    Esc close"
+            "↑↓ navigate    ↵ launch    Esc close".to_string()
         };
-        let hw = self.text.measure(hints, 12.0);
-        self.text.draw(&mut pixmap, hints,
+        let hw = self.text.measure(&hints, 12.0);
+        self.text.draw(&mut pixmap, &hints,
             px + (panel_w - hw) / 2.0, footer_y + 10.0, 12.0, hint_color);
 
         pixmap_to_bgra(pixmap)
     }
 
     fn render_results(&mut self, pixmap: &mut Pixmap, x: f32, mut y: f32, w: f32) {
-        let max = self.cfg.max_results.min(self.results.len());
+        let vis = self.visible_count();
 
-        for i in 0..max {
-            let result = &self.results[i];
+        // scroll indicator top
+        if self.scroll_offset > 0 {
+            let arrow = "▲";
+            let aw = self.text.measure(arrow, 10.0);
+            self.text.draw(pixmap, arrow, x + (w - aw) / 2.0, y - 14.0, 10.0,
+                with_alpha(hex_color(&self.cfg.text_dim), 0.4));
+        }
+
+        for i in 0..vis {
+            let abs_idx = self.scroll_offset + i;
+            let result = &self.results[abs_idx];
             let entry = &self.entries[result.index];
-            let is_sel = i == self.selected;
+            let is_sel = abs_idx == self.selected;
+            let is_hov = self.hovered == Some(abs_idx);
 
-            // selection highlight
+            // selection / hover highlight
             if is_sel {
                 fill_rounded_rect(pixmap, x, y, w, RESULT_H, RESULT_R,
                     hex_color(&self.cfg.selection_color));
                 stroke_rounded_rect(pixmap, x, y, w, RESULT_H, RESULT_R,
                     with_alpha(hex_color(&self.cfg.accent_color), 0.3), 1.0);
+            } else if is_hov {
+                fill_rounded_rect(pixmap, x, y, w, RESULT_H, RESULT_R,
+                    with_alpha(hex_color(&self.cfg.selection_color), 0.5));
             }
 
-            // app initial circle
-            let circle_x = x + 28.0;
-            let circle_y = y + RESULT_H / 2.0;
-            let circle_color = if is_sel {
-                with_alpha(hex_color(&self.cfg.accent_color), 0.8)
-            } else {
-                with_alpha(hex_color(&self.cfg.accent_color), 0.3)
-            };
-            fill_circle(pixmap, circle_x, circle_y, 14.0, circle_color);
+            // app icon or fallback initial circle
+            let icon_name = entry.icon.clone();
+            let icon_sz = self.icons.icon_size();
+            let icon_x = (x + 28.0 - icon_sz as f32 / 2.0) as i32;
+            let icon_y = (y + (RESULT_H - icon_sz as f32) / 2.0) as i32;
 
-            // initial letter
-            let initial = entry.name.chars().next().unwrap_or('?').to_uppercase().to_string();
-            let iw = self.text.measure(&initial, 14.0);
-            self.text.draw(pixmap, &initial,
-                circle_x - iw / 2.0, circle_y - 8.0, 14.0,
-                hex_color(&self.cfg.text_color));
+            if let Some(rgba) = self.icons.get(&icon_name) {
+                blit_icon_rgba(pixmap, icon_x, icon_y, icon_sz, rgba);
+            } else {
+                // fallback: colored circle with initial letter
+                let circle_x = x + 28.0;
+                let circle_y = y + RESULT_H / 2.0;
+                let circle_color = if is_sel {
+                    with_alpha(hex_color(&self.cfg.accent_color), 0.8)
+                } else {
+                    with_alpha(hex_color(&self.cfg.accent_color), 0.3)
+                };
+                fill_circle(pixmap, circle_x, circle_y, 14.0, circle_color);
+
+                let initial = entry.name.chars().next().unwrap_or('?').to_uppercase().to_string();
+                let iw = self.text.measure(&initial, 14.0);
+                self.text.draw(pixmap, &initial,
+                    circle_x - iw / 2.0, circle_y - 8.0, 14.0,
+                    hex_color(&self.cfg.text_color));
+            }
 
             // app name
             let name_x = x + 56.0;
@@ -319,6 +472,14 @@ impl LaunchRenderer {
                 with_alpha(hex_color(&self.cfg.text_dim), 0.5));
 
             y += RESULT_H + RESULT_GAP;
+        }
+
+        // scroll indicator bottom
+        if self.scroll_offset + vis < self.results.len() {
+            let arrow = "▼";
+            let aw = self.text.measure(arrow, 10.0);
+            self.text.draw(pixmap, arrow, x + (w - aw) / 2.0, y + 2.0, 10.0,
+                with_alpha(hex_color(&self.cfg.text_dim), 0.4));
         }
     }
 
@@ -355,7 +516,7 @@ impl LaunchRenderer {
     }
 
     fn render_cmd_hint(&mut self, pixmap: &mut Pixmap, x: f32, y: f32, w: f32) {
-        let cmd = &self.query[1..].trim();
+        let cmd = self.query[1..].trim().to_string();
 
         fill_rounded_rect(pixmap, x, y, w, RESULT_H, RESULT_R,
             hex_color(&self.cfg.selection_color));
@@ -370,7 +531,7 @@ impl LaunchRenderer {
             // show $ command
             let prompt_w = self.text.draw(pixmap, "$ ", label_x, label_y, 14.0,
                 hex_color(&self.cfg.accent_color));
-            self.text.draw(pixmap, cmd, label_x + prompt_w, label_y, 14.0,
+            self.text.draw(pixmap, &cmd, label_x + prompt_w, label_y, 14.0,
                 hex_color(&self.cfg.text_color));
         }
     }
@@ -386,6 +547,34 @@ fn truncate(s: &str, max: usize) -> String {
     let mut end = max;
     while !s.is_char_boundary(end) { end -= 1; }
     format!("{}...", &s[..end])
+}
+
+/// Blit RGBA icon pixels onto the pixmap with alpha blending.
+fn blit_icon_rgba(pixmap: &mut Pixmap, x: i32, y: i32, size: u32, rgba: &[u8]) {
+    let pw = pixmap.width() as i32;
+    let ph = pixmap.height() as i32;
+    let pixels = pixmap.pixels_mut();
+
+    for dy in 0..size as i32 {
+        for dx in 0..size as i32 {
+            let px = x + dx;
+            let py = y + dy;
+            if px < 0 || py < 0 || px >= pw || py >= ph { continue; }
+            let si = (dy as usize * size as usize + dx as usize) * 4;
+            if si + 3 >= rgba.len() { continue; }
+            let (sr, sg, sb, sa) = (rgba[si], rgba[si + 1], rgba[si + 2], rgba[si + 3]);
+            if sa == 0 { continue; }
+            let idx = (py * pw + px) as usize;
+            let dst = &mut pixels[idx];
+            let src_a = sa as u16;
+            let inv_a = 255u16 - src_a;
+            let dr = ((sr as u16 * src_a + dst.red() as u16 * inv_a) / 255) as u8;
+            let dg = ((sg as u16 * src_a + dst.green() as u16 * inv_a) / 255) as u8;
+            let db = ((sb as u16 * src_a + dst.blue() as u16 * inv_a) / 255) as u8;
+            let da = src_a.saturating_add(dst.alpha() as u16 * inv_a / 255) as u8;
+            *dst = tiny_skia::PremultipliedColorU8::from_rgba(dr, dg, db, da).unwrap_or(*dst);
+        }
+    }
 }
 
 fn pixmap_to_bgra(pixmap: Pixmap) -> Vec<u8> {

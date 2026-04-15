@@ -20,14 +20,11 @@ impl Widget for ClockWidget {
         (text.measure(&s, theme.font_size) + 16.0) as u32
     }
 
-    fn render(&mut self, ctx: &mut RenderCtx<'_>, _x: f32) {
+    fn render(&mut self, ctx: &mut RenderCtx<'_>, x: f32) {
         let s  = Local::now().format(&self.format).to_string();
         let h  = ctx.height as f32;
         let ty = (h - ctx.theme.font_size) / 2.0;
-        let tw = ctx.text.measure(&s, ctx.theme.font_size);
-        let w  = ctx.pixmap.width() as f32;
-        let tx = (w / 2.0 - tw / 2.0).max(4.0);
-        ctx.text.draw(ctx.pixmap, &s, tx, ty, ctx.theme.font_size, hex_color(&ctx.theme.foreground));
+        ctx.text.draw(ctx.pixmap, &s, x + 8.0, ty, ctx.theme.font_size, hex_color(&ctx.theme.foreground));
     }
 
     fn on_click(&mut self, _x: f64, _y: f64) {

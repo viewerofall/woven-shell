@@ -14,7 +14,7 @@ serde              = { workspace = true }
 tracing            = { workspace = true }
 tracing-subscriber = { workspace = true }
 tiny-skia          = { workspace = true }
-fontdue            = { workspace = true }
+woven-common       = { path = "../woven-common" }
 rustix             = { workspace = true }
 
 smithay-client-toolkit = { workspace = true }
@@ -22,5 +22,8 @@ wayland-client         = { workspace = true }
 wayland-protocols      = { workspace = true }
 wayland-protocols-wlr  = { workspace = true }
 
+image   = { workspace = true, features = ["png"] }
 toml    = "0.8"
 xkeysym = "0.2"
+resvg   = "0.47"
+flate2  = "1"
