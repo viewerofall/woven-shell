@@ -1,0 +1,25 @@
+[package]
+name    = "woven-osd"
+version = "0.1.0"
+edition = "2021"
+description = "woven-shell on-screen display for volume, brightness, and media"
+
+[[bin]]
+name = "woven-osd"
+path = "src/main.rs"
+
+[dependencies]
+anyhow             = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+tiny-skia          = { workspace = true }
+fontdue            = { workspace = true }
+rustix             = { workspace = true }
+
+smithay-client-toolkit = { workspace = true }
+wayland-client         = { workspace = true }
+wayland-protocols      = { workspace = true }
+wayland-protocols-wlr  = { workspace = true }
+
+crossbeam-channel = { workspace = true }
+libc              = "0.2"

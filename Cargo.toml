@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/woven-common", "crates/woven-bar", "crates/woven-cc", "crates/woven-power", "crates/woven-wall", "crates/woven-pick", "crates/woven-lock", "crates/woven-launch"]
+members = ["crates/woven-common", "crates/woven-bar", "crates/woven-cc", "crates/woven-power", "crates/woven-wall", "crates/woven-pick", "crates/woven-lock", "crates/woven-launch", "crates/woven-cfg", "crates/woven-osd"]
 resolver = "2"
 
 [workspace.dependencies]
