@@ -23,3 +23,4 @@ wayland-protocols-wlr  = { workspace = true }
 
 crossbeam-channel = { workspace = true }
 libc              = "0.2"
+woven-common      = { path = "../woven-common" }

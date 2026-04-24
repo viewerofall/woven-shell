@@ -1,7 +1,8 @@
-//! Battery status widget — reads from /sys/class/power_supply.
+//! Battery status widget — reads from /sys/class/power_supply or woven-session.
 
 use super::{RenderCtx, Widget};
 use crate::draw::{fill_rect, fill_rounded_rect, hex_color};
+use woven_common::session::SessionClient;
 
 pub struct BatteryWidget {
     cache:        Option<BatteryInfo>,
@@ -20,7 +21,16 @@ impl BatteryWidget {
     }
 
     fn read() -> Option<BatteryInfo> {
-        // Find first BAT* supply
+        // Try woven-session first
+        let mut client = SessionClient::new();
+        if client.is_connected() {
+            if let Some(battery) = client.get_battery() {
+                let charging = battery.ac_online;
+                return Some(BatteryInfo { pct: battery.percent, charging });
+            }
+        }
+
+        // Fall back to sysfs
         let base = std::fs::read_dir("/sys/class/power_supply").ok()?;
         for entry in base.flatten() {
             let name = entry.file_name();

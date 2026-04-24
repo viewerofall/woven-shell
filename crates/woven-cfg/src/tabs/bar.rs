@@ -81,40 +81,6 @@ pub fn render(panel: &mut Panel, pm: &mut Pixmap, w: f32) {
     panel.zones.push(Zone { x0: pad * 2.0 + fw, y0: y, x1: pad * 2.0 + fw * 2.0, y1: y + 40.0,
                             action: ZoneAction::BarFieldFocus(BarField::Position) });
     y += 48.0;
-
-    // ── Theme ─────────────────────────────────────────────────────────────────
-    section_header(pm, font, "Theme", pad, y); y += 22.0;
-
-    let fields: &[(&str, BarField, &str)] = &[
-        ("Background",  BarField::Background, &panel.bar_inputs.background.value.clone()),
-        ("Foreground",  BarField::Foreground, &panel.bar_inputs.foreground.value.clone()),
-        ("Accent",      BarField::Accent,     &panel.bar_inputs.accent.value.clone()),
-        ("Dim",         BarField::Dim,        &panel.bar_inputs.dim.value.clone()),
-        ("Font size",   BarField::FontSize,   &panel.bar_inputs.font_size.value.clone()),
-    ];
-    let fw3 = (w - pad * 4.0) / 3.0;
-    let mut col_i = 0;
-    for (label, field, val) in fields {
-        let val = val.to_string();
-        let field = field.clone();
-        let fx = pad + col_i as f32 * (fw3 + pad);
-        let focused = panel.bar_focused == Some(field.clone());
-        // Color swatch
-        if val.starts_with('#') { fill_rrect(pm, fx, y, 12.0, 12.0, 3.0, &val); }
-        draw_field(pm, font, label, &val, focused, fx, y, fw3, 40.0);
-        panel.zones.push(Zone { x0: fx, y0: y, x1: fx + fw3, y1: y + 40.0,
-                                action: ZoneAction::BarFieldFocus(field) });
-        col_i += 1;
-        if col_i == 3 { col_i = 0; y += 48.0; }
-    }
-    if col_i != 0 { y += 48.0; }
-
-    // Toggles
-    let wt_on = panel.bar_inputs.wallpaper_theme.value;
-    draw_text(pm, font, "Theme from wallpaper", pad, y + 4.0, 12.0, FG);
-    draw_toggle(pm, w - pad - 36.0, y + 1.0, wt_on);
-    panel.zones.push(Zone { x0: pad, y0: y, x1: w - pad, y1: y + 22.0,
-                            action: ZoneAction::BarToggle(BarToggleField::WallpaperTheme) });
 }
 
 fn section_header(pm: &mut Pixmap, font: &fontdue::Font, label: &str, x: f32, y: f32) {

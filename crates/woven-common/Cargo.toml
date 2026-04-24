@@ -5,6 +5,8 @@ edition     = "2021"
 description = "Shared drawing primitives and text renderer for woven-shell"
 
 [dependencies]
-tiny-skia = { workspace = true }
-fontdue   = { workspace = true }
-tracing   = { workspace = true }
+tiny-skia  = { workspace = true }
+fontdue    = { workspace = true }
+tracing    = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }

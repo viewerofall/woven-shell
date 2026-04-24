@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/woven-common", "crates/woven-bar", "crates/woven-cc", "crates/woven-power", "crates/woven-wall", "crates/woven-pick", "crates/woven-lock", "crates/woven-launch", "crates/woven-cfg", "crates/woven-osd"]
+members = ["crates/woven-common", "crates/woven-bar", "crates/woven-cc", "crates/woven-power", "crates/woven-wall", "crates/woven-pick", "crates/woven-lock", "crates/woven-launch", "crates/woven-cfg", "crates/woven-osd", "crates/woven-session", "crates/woven-switch", "crates/woven-screenshot"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -23,6 +23,10 @@ image     = { version = "0.25", default-features = false, features = ["jpeg"] }
 # serialization
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
+toml       = "0.8"
+
+# dbus
+zbus       = { version = "4", features = ["tokio"] }
 
 # logging
 tracing            = "0.1"

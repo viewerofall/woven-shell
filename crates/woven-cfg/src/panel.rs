@@ -31,13 +31,13 @@ const TAB_ACTIVE: &str = "#1e0038";
 // ── Tab ids ───────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Tab { Bar, Wall, Lock, Launch, Sway }
+pub enum Tab { Bar, Wall, Lock, Launch, Sway, Theme }
 
 impl Tab {
-    pub const ALL: &'static [Tab] = &[Tab::Bar, Tab::Wall, Tab::Lock, Tab::Launch, Tab::Sway];
+    pub const ALL: &'static [Tab] = &[Tab::Bar, Tab::Wall, Tab::Lock, Tab::Launch, Tab::Sway, Tab::Theme];
     pub fn label(self) -> &'static str {
         match self { Tab::Bar => "Bar", Tab::Wall => "Wall", Tab::Lock => "Lock",
-                     Tab::Launch => "Launch", Tab::Sway => "Sway" }
+                     Tab::Launch => "Launch", Tab::Sway => "Sway", Tab::Theme => "Theme" }
     }
 }
 
@@ -87,6 +87,8 @@ pub enum ZoneAction {
     // Launch tab
     LaunchFieldFocus(LaunchField),
     LaunchToggle(LaunchToggleField),
+    // Theme tab
+    ThemeSelect(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -179,6 +181,9 @@ pub struct Panel {
     // Launch tab
     pub launch_focused: Option<LaunchField>,
     pub launch_inputs:  LaunchInputs,
+
+    // Theme tab
+    pub selected_theme: String,
 
     pub text_font: fontdue::Font,
 }
@@ -305,6 +310,7 @@ impl Panel {
             wall_focused: None, wall_inputs,
             lock_focused: None, lock_inputs,
             launch_focused: None, launch_inputs,
+            selected_theme: "catppuccin".to_string(),
             text_font,
         }
     }
@@ -442,6 +448,9 @@ impl Panel {
                     LaunchToggleField::CommandRunner => self.launch_inputs.cmd_runner.flip(),
                 }
             }
+
+            // Theme tab
+            ZoneAction::ThemeSelect(name) => { self.selected_theme = name; }
         }
         self.dirty = true;
     }
@@ -584,16 +593,46 @@ impl Panel {
         // Flush text input values back into cfg structs
         self.flush_inputs();
 
+        // Handle theme selection
+        if self.tab == Tab::Theme {
+            self.apply_theme();
+        }
+
         let result = match self.tab {
             Tab::Bar    => self.cfg.save_bar(),
             Tab::Wall   => self.cfg.save_wall(),
             Tab::Lock   => self.cfg.save_lock(),
             Tab::Launch => self.cfg.save_launch(),
             Tab::Sway   => self.cfg.save_keybinds(),
+            Tab::Theme  => self.cfg.save_bar(),
         };
         match result {
             Ok(_)  => self.set_status("Saved.", false),
             Err(e) => self.set_status(&format!("Error: {e}"), true),
+        }
+    }
+
+    fn apply_theme(&mut self) {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
+        let theme_path = format!("{}/.config/woven-shell/themes/{}.toml", home, self.selected_theme);
+
+        if let Ok(content) = std::fs::read_to_string(&theme_path) {
+            if let Ok(parsed) = toml::from_str::<toml::Table>(&content) {
+                if let Some(theme) = parsed.get("theme").and_then(|t| t.as_table()) {
+                    if let Some(bg) = theme.get("background").and_then(|v| v.as_str()) {
+                        self.cfg.bar.theme.background = bg.to_string();
+                    }
+                    if let Some(fg) = theme.get("foreground").and_then(|v| v.as_str()) {
+                        self.cfg.bar.theme.foreground = fg.to_string();
+                    }
+                    if let Some(acc) = theme.get("accent").and_then(|v| v.as_str()) {
+                        self.cfg.bar.theme.accent = acc.to_string();
+                    }
+                    if let Some(dim) = theme.get("dim").and_then(|v| v.as_str()) {
+                        self.cfg.bar.theme.dim = dim.to_string();
+                    }
+                }
+            }
         }
     }
 
@@ -723,6 +762,7 @@ impl Panel {
                 Tab::Lock   => crate::tabs::lock::render(self, &mut inner, cw),
                 Tab::Launch => crate::tabs::launch::render(self, &mut inner, cw),
                 Tab::Sway   => crate::tabs::sway::render(self, &mut inner, cw),
+                Tab::Theme  => crate::tabs::theme::render(self, &mut inner, cw),
             }
             // Blit inner → outer with scroll clipping
             let src_y = self.scroll_y as i32;

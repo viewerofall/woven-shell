@@ -1,5 +1,7 @@
 //! System state readers — volume, brightness, media.
 
+use woven_common::session::SessionClient;
+
 #[derive(Debug, Clone)]
 pub struct VolumeState {
     pub level:  u8,
@@ -90,6 +92,21 @@ pub fn read_brightness() -> u8 {
 // ── Media ─────────────────────────────────────────────────────────────────────
 
 pub fn read_media() -> Option<MediaState> {
+    // Try woven-session first if available
+    let mut client = SessionClient::new();
+    if client.is_connected() {
+        if let Some(media) = client.get_media() {
+            if !media.title.is_empty() || !media.artist.is_empty() {
+                return Some(MediaState {
+                    title: media.title,
+                    artist: media.artist,
+                    playing: media.playing,
+                });
+            }
+        }
+    }
+
+    // Fall back to playerctl
     let status = run("playerctl", &["status"]).ok()?;
     let status = status.trim();
     if status == "No players found" || status.is_empty() { return None; }
