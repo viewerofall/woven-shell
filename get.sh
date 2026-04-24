@@ -13,7 +13,7 @@ TMP=$(mktemp -d)
 BINDIR="$HOME/.local/bin"
 CFGDIR="$HOME/.config/woven-shell"
 
-COMPONENTS="woven-bar woven-power woven-cc woven-launch woven-lock woven-wall woven-pick woven-cfg woven-osd"
+COMPONENTS="woven-bar woven-power woven-cc woven-launch woven-lock woven-wall woven-pick woven-cfg woven-osd woven-screenshot woven-session woven-switch"
 
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
@@ -85,6 +85,14 @@ ask() {
     [ "${reply}" = "y" ] || [ "${reply}" = "Y" ]
 }
 
+install_themes() {
+    if [ -d "$SRC/config/themes" ]; then
+        mkdir -p "$CFGDIR/themes"
+        cp "$SRC/config/themes/"*.toml "$CFGDIR/themes/" 2>/dev/null || true
+        echo "  ✓ Themes installed to $CFGDIR/themes"
+    fi
+}
+
 echo ""
 
 if [ -n "$INSTALL_ONE" ]; then
@@ -96,6 +104,10 @@ elif $INSTALL_ALL; then
     for name in $COMPONENTS; do
         install_one "$name"
     done
+    install_themes
+    echo ""
+    echo "==> Launching config manager..."
+    "$BINDIR/woven-cfg" 2>/dev/null &
 
 else
     echo "==> Select components to install:"
@@ -119,6 +131,7 @@ else
     for name in $TO_INSTALL; do
         install_one "$name"
     done
+    install_themes
 fi
 
 echo ""

@@ -5,7 +5,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="${HOME}/.local/bin"
 CFG_DIR="${HOME}/.config/woven-shell"
 
-COMPONENTS=(woven-bar woven-power woven-cc woven-launch woven-lock woven-wall woven-pick woven-cfg woven-osd)
+COMPONENTS=(woven-bar woven-power woven-cc woven-launch woven-lock woven-wall woven-pick woven-cfg woven-osd woven-screenshot woven-session woven-switch)
 
 # Config files per component (space-separated, relative to config/)
 declare -A COMPONENT_CONFIGS=(
@@ -18,6 +18,9 @@ declare -A COMPONENT_CONFIGS=(
     [woven-pick]=""
     [woven-cfg]=""
     [woven-osd]=""
+    [woven-screenshot]=""
+    [woven-session]=""
+    [woven-switch]=""
 )
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -67,6 +70,14 @@ install_component() {
             fi
         fi
     done
+}
+
+install_themes() {
+    if [[ -d "$REPO_DIR/config/themes" ]]; then
+        mkdir -p "$CFG_DIR/themes"
+        cp -r "$REPO_DIR/config/themes/"*.toml "$CFG_DIR/themes/" 2>/dev/null || true
+        ok "Installed themes to $CFG_DIR/themes"
+    fi
 }
 
 # ── Package mode ──────────────────────────────────────────────────────────────
@@ -148,6 +159,10 @@ elif $INSTALL_ALL; then
         build_component "$name"
         install_component "$name"
     done
+    install_themes
+    echo ""
+    bold "Done. Launching config manager..."
+    "$BIN_DIR/woven-cfg" 2>/dev/null &
 
 else
     TO_BUILD=()
@@ -171,6 +186,7 @@ else
         build_component "$name"
         install_component "$name"
     done
+    install_themes
 fi
 
 echo ""

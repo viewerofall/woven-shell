@@ -1,0 +1,21 @@
+# Catppuccin Mocha theme
+# https://catppuccin.com/palette
+
+[theme]
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+accent     = "#cba6f7"
+dim        = "#6a508a"
+
+# Optional: variant-specific overrides
+[mocha]
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+accent     = "#cba6f7"
+dim        = "#45475a"
+
+[latte]
+background = "#eff1f5"
+foreground = "#4c4f69"
+accent     = "#8839ef"
+dim        = "#9ca0b0"

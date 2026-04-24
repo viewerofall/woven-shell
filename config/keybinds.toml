@@ -1,0 +1,417 @@
+# woven-cfg managed keybinds — source of truth
+# Edit via woven-cfg. ~/.config/sway/woven-keybinds is auto-generated.
+
+[[bind]]
+category = "core"
+key      = "$mod+Return"
+action   = "exec kitty"
+label    = "Terminal"
+
+[[bind]]
+category = "core"
+key      = "$mod+d"
+action   = "exec ~/.local/bin/woven-launch"
+label    = "Launcher"
+
+[[bind]]
+category = "core"
+key      = "$mod+q"
+action   = "kill"
+label    = "Close window"
+
+[[bind]]
+category = "core"
+key      = "$mod+Shift+r"
+action   = "reload"
+label    = "Reload sway"
+
+[[bind]]
+category = "core"
+key      = "$mod+Shift+p"
+action   = "exec /home/abyss/.local/bin/woven-power"
+label    = "Power menu"
+
+[[bind]]
+category = "apps"
+key      = "$mod+b"
+action   = "exec firefox"
+label    = "Browser"
+
+[[bind]]
+category = "apps"
+key      = "$mod+e"
+action   = "exec kitty yazi"
+label    = "File manager"
+
+[[bind]]
+category = "apps"
+key      = "$mod+a"
+action   = "exec /home/abyss/aurlooker/target/release/aurlooker"
+label    = "AUR browser"
+
+[[bind]]
+category = "apps"
+key      = "$mod+s"
+action   = "exec /home/abyss/scratchpad/src-tauri/target/release/scratchpad"
+label    = "Scratchpad"
+
+[[bind]]
+category = "apps"
+key      = "$mod+m"
+action   = "exec kitty -e btop"
+label    = "Task manager"
+
+[[bind]]
+category = "woven"
+key      = "$mod+o"
+action   = "exec /home/abyss/.local/bin/woven-cfg"
+label    = "Config manager"
+
+[[bind]]
+category = "woven"
+key      = "$mod+Tab"
+action   = "exec /home/abyss/.local/bin/woven-ctrl --toggle"
+label    = "Woven overlay"
+
+[[bind]]
+category = "woven"
+key      = "$mod+y"
+action   = "exec /home/abyss/.local/bin/woven-pick"
+label    = "Wallpaper picker"
+
+[[bind]]
+category = "woven"
+key      = "$mod+Escape"
+action   = "exec /home/abyss/.local/bin/woven-lock"
+label    = "Lock screen"
+
+[[bind]]
+category = "woven"
+key      = "$mod+n"
+action   = "exec swaync-client --toggle-panel"
+label    = "Notifications"
+
+[[bind]]
+category = "focus"
+key      = "$mod+h"
+action   = "focus left"
+label    = "Focus left"
+
+[[bind]]
+category = "focus"
+key      = "$mod+j"
+action   = "focus down"
+label    = "Focus down"
+
+[[bind]]
+category = "focus"
+key      = "$mod+k"
+action   = "focus up"
+label    = "Focus up"
+
+[[bind]]
+category = "focus"
+key      = "$mod+l"
+action   = "focus right"
+label    = "Focus right"
+
+[[bind]]
+category = "focus"
+key      = "$mod+Left"
+action   = "focus left"
+label    = "Focus left (arrow)"
+
+[[bind]]
+category = "focus"
+key      = "$mod+Down"
+action   = "focus down"
+label    = "Focus down (arrow)"
+
+[[bind]]
+category = "focus"
+key      = "$mod+Up"
+action   = "focus up"
+label    = "Focus up (arrow)"
+
+[[bind]]
+category = "focus"
+key      = "$mod+Right"
+action   = "focus right"
+label    = "Focus right (arrow)"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+h"
+action   = "move left"
+label    = "Move left"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+j"
+action   = "move down"
+label    = "Move down"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+k"
+action   = "move up"
+label    = "Move up"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+l"
+action   = "move right"
+label    = "Move right"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+Left"
+action   = "move left"
+label    = "Move left (arrow)"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+Down"
+action   = "move down"
+label    = "Move down (arrow)"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+Up"
+action   = "move up"
+label    = "Move up (arrow)"
+
+[[bind]]
+category = "move"
+key      = "$mod+Shift+Right"
+action   = "move right"
+label    = "Move right (arrow)"
+
+[[bind]]
+category = "layout"
+key      = "$mod+v"
+action   = "splitv"
+label    = "Split vertical"
+
+[[bind]]
+category = "layout"
+key      = "$mod+w"
+action   = "layout tabbed"
+label    = "Tabbed layout"
+
+[[bind]]
+category = "layout"
+key      = "$mod+f"
+action   = "fullscreen"
+label    = "Fullscreen"
+
+[[bind]]
+category = "layout"
+key      = "$mod+Shift+space"
+action   = "floating toggle"
+label    = "Toggle floating"
+
+[[bind]]
+category = "layout"
+key      = "$mod+space"
+action   = "focus mode_toggle"
+label    = "Focus mode toggle"
+
+[[bind]]
+category = "layout"
+key      = "$mod+Shift+minus"
+action   = "move scratchpad"
+label    = "Move to scratchpad"
+
+[[bind]]
+category = "layout"
+key      = "$mod+minus"
+action   = "scratchpad show"
+label    = "Show scratchpad"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+1"
+action   = "workspace number 1"
+label    = "Workspace 1"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+2"
+action   = "workspace number 2"
+label    = "Workspace 2"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+3"
+action   = "workspace number 3"
+label    = "Workspace 3"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+4"
+action   = "workspace number 4"
+label    = "Workspace 4"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+5"
+action   = "workspace number 5"
+label    = "Workspace 5"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+6"
+action   = "workspace number 6"
+label    = "Workspace 6"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+7"
+action   = "workspace number 7"
+label    = "Workspace 7"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+8"
+action   = "workspace number 8"
+label    = "Workspace 8"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+9"
+action   = "workspace number 9"
+label    = "Workspace 9"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+0"
+action   = "workspace number 10"
+label    = "Workspace 10"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+1"
+action   = "move container to workspace number 1"
+label    = "Move to workspace 1"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+2"
+action   = "move container to workspace number 2"
+label    = "Move to workspace 2"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+3"
+action   = "move container to workspace number 3"
+label    = "Move to workspace 3"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+4"
+action   = "move container to workspace number 4"
+label    = "Move to workspace 4"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+5"
+action   = "move container to workspace number 5"
+label    = "Move to workspace 5"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+6"
+action   = "move container to workspace number 6"
+label    = "Move to workspace 6"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+7"
+action   = "move container to workspace number 7"
+label    = "Move to workspace 7"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+8"
+action   = "move container to workspace number 8"
+label    = "Move to workspace 8"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+9"
+action   = "move container to workspace number 9"
+label    = "Move to workspace 9"
+
+[[bind]]
+category = "workspaces"
+key      = "$mod+Shift+0"
+action   = "move container to workspace number 10"
+label    = "Move to workspace 10"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioMute"
+action   = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+label    = "Mute"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioLowerVolume"
+action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+label    = "Volume down"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioRaiseVolume"
+action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+label    = "Volume up"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioPlay"
+action   = "exec playerctl play-pause"
+label    = "Play/pause"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioNext"
+action   = "exec playerctl next"
+label    = "Next track"
+
+[[bind]]
+category = "media"
+key      = "XF86AudioPrev"
+action   = "exec playerctl previous"
+label    = "Previous track"
+
+[[bind]]
+category = "media"
+key      = "XF86MonBrightnessUp"
+action   = "exec brightnessctl set 10%+"
+label    = "Brightness up"
+
+[[bind]]
+category = "media"
+key      = "XF86MonBrightnessDown"
+action   = "exec brightnessctl set 10%-"
+label    = "Brightness down"
+
+[[bind]]
+category = "screenshots"
+key      = "Print"
+action   = "exec grim ~/Pictures/Screenshots/$(date +%Y%m%d_%H%M%S).png"
+label    = "Full screenshot"
+
+[[bind]]
+category = "screenshots"
+key      = "$mod+Print"
+action   = "exec grim -g \"$(slurp)\" ~/Pictures/Screenshots/$(date +%Y%m%d_%H%M%S).png"
+label    = "Area screenshot"
+
+[[bind]]
+category = "screenshots"
+key      = "$mod+Shift+period"
+action   = "exec grim -g \"$(swaymsg -t get_tree | jq -r '.. | select(.focused?) | .rect | \"\\(.x),\\(.y) \\(.width)x\\(.height)\"')\" ~/Pictures/Screenshots/$(date +%Y%m%d_%H%M%S).png"
+label    = "Window screenshot"
+

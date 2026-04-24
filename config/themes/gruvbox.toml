@@ -1,0 +1,15 @@
+# Gruvbox Dark theme
+# https://github.com/morhetz/gruvbox
+
+[theme]
+background = "#282828"
+foreground = "#ebdbb2"
+accent     = "#fabd2f"
+dim        = "#665c54"
+
+# Optional: light variant
+[light]
+background = "#f9f5d7"
+foreground = "#3c3836"
+accent     = "#b8860b"
+dim        = "#928374"

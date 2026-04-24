@@ -1,10 +1,13 @@
 # woven-bar configuration
 # ~/.config/woven-shell/bar.toml
 
-height   = 34
-position = "top"
+height       = 34
+position     = "top"
+style        = "bubbles"
+theme_source = "wallpaper"
 
 [theme]
+# fallback colors when theme_source = "config" or woven-theme.toml missing
 background = "#0a0010"
 foreground = "#cdd6f4"
 accent     = "#c792ea"
@@ -12,7 +15,18 @@ dim        = "#2a1545"
 radius     = 7
 font_size  = 13.0
 
+[bubbles]
+background = "#1a0a2e"
+radius     = 12
+gap        = 6
+padding    = 10
+margin     = 4
+
+[weather]
+lat = 33.4484
+lon = -112.0740
+
 [modules]
-left   = ["activities", "workspaces", "window_title"]
-center = ["clock"]
-right  = ["systray", "notifications", "media", "temp", "cpu", "memory", "disk", "network", "audio", "battery", "control_center"]
+left   = ["activities", "|", "workspaces", "window_title"]
+center = ["weather", "|", "clock"]
+right  = ["systray", "|", "notifications", "media", "|", "temp", "cpu", "memory", "disk", "|", "network", "audio", "battery", "|", "control_center"]
