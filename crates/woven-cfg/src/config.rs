@@ -146,6 +146,7 @@ pub struct LockBgCfg {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockSettingsCfg {
+    #[serde(default = "def_lock_program")] pub lock_program:   String,
     #[serde(default = "def_blur")]      pub blur_radius:    u32,
     #[serde(default = "def_true")]      pub show_clock:     bool,
     #[serde(default = "def_clock_fmt")] pub clock_format:   String,
@@ -160,6 +161,7 @@ pub struct LockSettingsCfg {
 }
 
 fn def_lock_bg_type() -> String { "random".into() }
+fn def_lock_program() -> String { "woven-lock".into() }
 fn def_blur()         -> u32    { 20 }
 fn def_true()         -> bool   { true }
 fn def_clock_fmt()    -> String { "%H:%M".into() }
@@ -177,6 +179,7 @@ impl Default for LockBgCfg {
 impl Default for LockSettingsCfg {
     fn default() -> Self {
         Self {
+            lock_program: "woven-lock".into(),
             blur_radius: 20, show_clock: true, clock_format: "%H:%M".into(),
             show_date: true,  date_format: "%A, %B %e".into(),
             text_color: "#cdd6f4".into(), accent_color: "#cba6f7".into(),

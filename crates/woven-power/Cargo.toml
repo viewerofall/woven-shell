@@ -21,4 +21,5 @@ wayland-client         = { workspace = true }
 wayland-protocols      = { workspace = true }
 wayland-protocols-wlr  = { workspace = true }
 
+woven-lock = { path = "../woven-lock" }
 libc = "0.2"

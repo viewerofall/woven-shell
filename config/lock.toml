@@ -14,6 +14,7 @@ dir  = "~/Pictures/Wallpapers"
 
 # ── Lock settings ────────────────────────────────────────────────────────────
 [lock]
+lock_program   = "woven-lock"  # "woven-lock" or "swaylock"
 blur_radius    = 20
 show_clock     = true
 clock_format   = "%H:%M"

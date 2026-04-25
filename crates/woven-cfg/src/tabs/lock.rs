@@ -9,6 +9,20 @@ pub fn render(panel: &mut Panel, pm: &mut Pixmap, w: f32) {
     let pad  = 14.0f32;
     let fw   = (w - pad * 3.0) / 2.0;
 
+    // Lock program
+    draw_text(pm, font, "Lock program", pad, y + 2.0, 10.5, DIM);
+    let mut kx = pad + 100.0;
+    for (id, label) in [("woven-lock", "woven-lock"), ("swaylock", "swaylock")] {
+        let selected = panel.lock_inputs.lock_program == id;
+        let bg = if selected { ACCENT } else { BORDER };
+        let fg = if selected { BG } else { FG };
+        let kw = draw_pill(pm, font, label, kx, y, 26.0, fg, bg);
+        panel.zones.push(Zone { x0: kx, y0: y, x1: kx + kw, y1: y + 26.0,
+                                action: ZoneAction::LockProgramSelect(id.to_string()) });
+        kx += kw + 6.0;
+    }
+    y += 36.0;
+
     // Background type
     draw_text(pm, font, "Background", pad, y + 2.0, 10.5, DIM);
     let mut kx = pad + 90.0;

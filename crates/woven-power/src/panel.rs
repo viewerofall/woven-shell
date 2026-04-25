@@ -203,9 +203,19 @@ impl Panel {
     fn execute(&self, action: Action) {
         match action {
             Action::Lock => {
-                // woven-lock stub: call hyprlock for now
-                let _ = std::process::Command::new("hyprlock").spawn()
-                    .or_else(|_| std::process::Command::new("swaylock").arg("-f").spawn());
+                let cfg = woven_lock::config::LockConfig::load();
+                let lock_program = cfg.lock.lock_program.as_str();
+
+                let result = if lock_program == "swaylock" {
+                    std::process::Command::new("swaylock").arg("-f").spawn()
+                } else {
+                    std::process::Command::new("woven-lock").spawn()
+                        .or_else(|_| std::process::Command::new("swaylock").arg("-f").spawn())
+                };
+
+                if result.is_err() {
+                    eprintln!("No lock program found, please install woven-lock or swaylock");
+                }
             }
             Action::Logout => {
                 // Try swaymsg first, then niri

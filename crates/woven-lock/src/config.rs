@@ -31,6 +31,9 @@ impl Default for BackgroundSettings {
 
 #[derive(Deserialize)]
 pub struct LockSettings {
+    #[serde(default = "default_lock_program")]
+    pub lock_program: String,
+
     #[serde(default = "default_blur_radius")]
     pub blur_radius: u32,
 
@@ -68,6 +71,7 @@ pub struct LockSettings {
 impl Default for LockSettings {
     fn default() -> Self {
         Self {
+            lock_program:   "woven-lock".into(),
             blur_radius:    20,
             show_clock:     true,
             clock_format:   "%H:%M".into(),
@@ -100,6 +104,7 @@ impl Default for LockConfig {
     }
 }
 
+fn default_lock_program() -> String { "woven-lock".into() }
 fn default_blur_radius() -> u32 { 20 }
 fn default_true() -> bool { true }
 fn default_clock_format() -> String { "%H:%M".into() }

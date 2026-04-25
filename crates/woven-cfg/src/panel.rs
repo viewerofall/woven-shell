@@ -81,6 +81,7 @@ pub enum ZoneAction {
     WallKindSelect(String),
     WallFieldFocus(WallField),
     // Lock tab
+    LockProgramSelect(String),
     LockBgKindSelect(String),
     LockFieldFocus(LockField),
     LockToggle(LockToggleField),
@@ -108,7 +109,7 @@ pub enum WallField { Path, Color, Dir, Interval, TransitionSecs }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LockField { Dir, Path, BlurRadius, ClockFormat, DateFormat,
-                     TextColor, AccentColor, ErrorColor, FadeInMs }
+                     TextColor, AccentColor, ErrorColor, FadeInMs, LockProgram }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LockToggleField { ShowClock, ShowDate, ShakeOnError }
@@ -212,6 +213,7 @@ pub struct WallInputs {
 }
 
 pub struct LockInputs {
+    pub lock_program: String,
     pub dir:          TextInput,
     pub path:         TextInput,
     pub blur_radius:  TextInput,
@@ -271,6 +273,7 @@ impl Panel {
         };
 
         let lock_inputs = LockInputs {
+            lock_program: lock.lock.lock_program.clone(),
             dir:          TextInput::new(&lock.background.dir),
             path:         TextInput::new(&lock.background.path),
             blur_radius:  TextInput::new(lock.lock.blur_radius.to_string()),
@@ -430,6 +433,7 @@ impl Panel {
             ZoneAction::WallFieldFocus(f)  => { self.wall_focused = Some(f); }
 
             // Lock tab
+            ZoneAction::LockProgramSelect(p) => { self.lock_inputs.lock_program = p; }
             ZoneAction::LockBgKindSelect(k) => { self.lock_inputs.bg_kind = k; }
             ZoneAction::LockFieldFocus(f)   => { self.lock_focused = Some(f); }
             ZoneAction::LockToggle(f) => {
@@ -485,17 +489,18 @@ impl Panel {
             });
         }
         if let Some(ref f) = self.lock_focused.clone() {
-            return Some(match f {
-                LockField::Dir        => &mut self.lock_inputs.dir,
-                LockField::Path       => &mut self.lock_inputs.path,
-                LockField::BlurRadius => &mut self.lock_inputs.blur_radius,
-                LockField::ClockFormat => &mut self.lock_inputs.clock_format,
-                LockField::DateFormat  => &mut self.lock_inputs.date_format,
-                LockField::TextColor   => &mut self.lock_inputs.text_color,
-                LockField::AccentColor => &mut self.lock_inputs.accent_color,
-                LockField::ErrorColor  => &mut self.lock_inputs.error_color,
-                LockField::FadeInMs    => &mut self.lock_inputs.fade_in_ms,
-            });
+            return match f {
+                LockField::Dir        => Some(&mut self.lock_inputs.dir),
+                LockField::Path       => Some(&mut self.lock_inputs.path),
+                LockField::BlurRadius => Some(&mut self.lock_inputs.blur_radius),
+                LockField::ClockFormat => Some(&mut self.lock_inputs.clock_format),
+                LockField::DateFormat  => Some(&mut self.lock_inputs.date_format),
+                LockField::TextColor   => Some(&mut self.lock_inputs.text_color),
+                LockField::AccentColor => Some(&mut self.lock_inputs.accent_color),
+                LockField::ErrorColor  => Some(&mut self.lock_inputs.error_color),
+                LockField::FadeInMs    => Some(&mut self.lock_inputs.fade_in_ms),
+                LockField::LockProgram => None,
+            };
         }
         if let Some(ref f) = self.launch_focused.clone() {
             return Some(match f {
@@ -659,6 +664,7 @@ impl Panel {
         l.background.kind = self.lock_inputs.bg_kind.clone();
         l.background.dir  = self.lock_inputs.dir.value.trim().to_string();
         l.background.path = self.lock_inputs.path.value.trim().to_string();
+        l.lock.lock_program = self.lock_inputs.lock_program.clone();
         if let Ok(v) = self.lock_inputs.blur_radius.value.trim().parse::<u32>()  { l.lock.blur_radius = v; }
         if let Ok(v) = self.lock_inputs.fade_in_ms.value.trim().parse::<u32>()   { l.lock.fade_in_ms = v; l.lock.fade_out_ms = v; }
         l.lock.clock_format   = self.lock_inputs.clock_format.value.trim().to_string();
