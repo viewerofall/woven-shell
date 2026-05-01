@@ -18,16 +18,16 @@ use state::{BatteryState, MediaState, SessionState};
 async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
-    // If we have arguments, run command mode
-    if args.len() > 1 {
-        return run_command(&args[1..]).await;
+    // No args: print help
+    if args.len() < 2 {
+        return run_command(&["help".to_string()]).await;
     }
 
-    // Otherwise run daemon mode
-    run_daemon().await
+    // Run command mode
+    run_command(&args[1..]).await
 }
 
-async fn run_daemon() -> Result<()> {
+pub async fn run_daemon() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();

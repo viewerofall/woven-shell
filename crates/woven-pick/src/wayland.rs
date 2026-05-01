@@ -159,10 +159,11 @@ impl PickState {
         let layer   = self.layer_shell.create_layer_surface(
             qh, wl_surf, Layer::Overlay, Some("woven-pick"), None,
         );
-        layer.set_anchor(Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
-        layer.set_exclusive_zone(-1);
+        layer.set_anchor(Anchor::TOP | Anchor::RIGHT);
+        layer.set_exclusive_zone(0);
         layer.set_keyboard_interactivity(KeyboardInteractivity::Exclusive);
-        layer.set_size(0, 0);
+        layer.set_size(1000, 700);
+        layer.set_margin(10, 10, 10, 10);
         layer.commit();
 
         let pool = SlotPool::new(32 * 1024 * 1024, &self.shm)

@@ -5,12 +5,15 @@ use std::os::unix::net::UnixStream;
 use std::process::Command;
 use std::time::Duration;
 
+use crate::run_daemon;
+
 pub async fn run_command(args: &[String]) -> Result<()> {
     if args.is_empty() {
         bail!("no command provided");
     }
 
     match args[0].as_str() {
+        "run" => cmd_run().await,
         "status" => cmd_status(),
         "reload" => cmd_reload(),
         "quit" => cmd_quit(),
@@ -73,7 +76,8 @@ pub async fn run_command(args: &[String]) -> Result<()> {
 }
 
 fn query_session(cmd: &str) -> Result<String> {
-    let mut stream = UnixStream::connect("/tmp/woven-session.sock")?;
+    let mut stream = UnixStream::connect("/tmp/woven-session.sock")
+        .map_err(|_| anyhow::anyhow!("woven-session daemon not running. Start it with: woven-session run"))?;
     stream.set_read_timeout(Some(Duration::from_secs(1)))?;
     stream.set_write_timeout(Some(Duration::from_secs(1)))?;
 
@@ -104,6 +108,10 @@ fn cmd_quit() -> Result<()> {
     println!("Shutting down session...");
     query_session("quit")?;
     Ok(())
+}
+
+async fn cmd_run() -> Result<()> {
+    run_daemon().await
 }
 
 fn cmd_media(subcmd: &str) -> Result<()> {
@@ -306,10 +314,14 @@ fn print_help() -> Result<()> {
 
 USAGE
   woven-session [COMMAND] [ARGS...]
-  woven-session                    # Run as daemon
+  woven-session                    # Show this help
+  woven-session run                # Run as daemon
   woven-session media play         # Execute command
 
 COMMANDS
+  Daemon:
+    run                            # Start the daemon
+
   Media:
     media play                     # Play
     media pause                    # Pause

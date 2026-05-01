@@ -256,65 +256,47 @@ impl Panel {
     }
 
     fn draw_main(&self, pm: &mut Pixmap, sw: u32, sh: u32, zones: &mut Vec<ClickZone>) {
-        let card_w   = 140.0f32;
-        let card_h   = 120.0f32;
-        let gap      = 20.0f32;
-        let cols     = 3usize;
-        let rows     = 2usize;
-        let grid_w   = cols as f32 * card_w + (cols - 1) as f32 * gap;
-        let grid_h   = rows as f32 * card_h + (rows - 1) as f32 * gap;
-        let ox       = (sw as f32 - grid_w) / 2.0;
-        let oy       = (sh as f32 - grid_h) / 2.0 - 20.0; // slightly above center
+        let btn_radius = 50.0f32;
+        let gap        = 80.0f32;
+        let n_actions  = Action::ALL.len() as f32;
+        let total_w    = n_actions * btn_radius * 2.0 + (n_actions - 1.0) * gap;
+        let ox         = (sw as f32 - total_w) / 2.0;
+        let oy         = (sh as f32) / 2.0 - btn_radius; // center vertically
 
-        // Title
-        let title = "System Actions";
-        let tw = self.measure_text(title, 18.0);
-        self.blit_text(pm, title, (sw as f32 - tw) / 2.0, oy - 50.0, 18.0, hex(DIM));
-
-        // Hint line
-        let hint = "1-6  ↑↓←→ / hjkl  Enter  Esc";
+        // Hint line at bottom
+        let hint = "1-6  ↑↓  Enter  Esc";
         let hw = self.measure_text(hint, 11.0);
-        self.blit_text(pm, hint, (sw as f32 - hw) / 2.0, oy + grid_h + 20.0, 11.0, hex(DIM));
+        self.blit_text(pm, hint, (sw as f32 - hw) / 2.0, oy + btn_radius * 2.0 + 40.0, 11.0, hex(DIM));
 
         for (i, &action) in Action::ALL.iter().enumerate() {
-            let col = i % cols;
-            let row = i / cols;
-            let cx  = ox + col as f32 * (card_w + gap);
-            let cy  = oy + row as f32 * (card_h + gap);
+            let cx = ox + i as f32 * (btn_radius * 2.0 + gap) + btn_radius;
+            let cy = oy + btn_radius;
 
-            let selected  = i == self.selected;
-            let bg        = if selected { hex(BG_SEL) }   else { hex(BG_CARD) };
-            let border_c  = if selected { hex(BORDER_SEL) } else { hex(BORDER) };
+            let selected = i == self.selected;
 
-            draw_rrect(pm, cx, cy, card_w, card_h, 12.0, bg);
+            // Circle background — teal for selected, darker for unselected
+            let bg_col = if selected { hex(TEAL) } else { hex(DIM) };
+            draw_circle(pm, cx, cy, btn_radius, bg_col);
 
-            // Border — draw as stroke path
+            // Selection ring for selected state
             if selected {
-                draw_rrect_stroke(pm, cx, cy, card_w, card_h, 12.0, border_c, 2.0);
-            } else {
-                draw_rrect_stroke(pm, cx, cy, card_w, card_h, 12.0, border_c, 1.0);
+                draw_circle_stroke(pm, cx, cy, btn_radius, hex(ACCENT), 2.5);
             }
 
-            // Icon
+            // Icon in center
             let icon     = action.icon();
-            let icon_col = if selected { hex(ACCENT) } else { hex(action.color()) };
-            let icon_sz  = 28.0f32;
+            let icon_sz  = 40.0f32;
+            let icon_col = if selected { hex(BG_CARD) } else { hex(action.color()) };
             let iw       = self.measure_icon(icon, icon_sz);
-            self.blit_icon(pm, icon, cx + (card_w - iw) / 2.0, cy + 28.0, icon_sz, icon_col);
+            self.blit_icon(pm, icon, cx - iw / 2.0, cy - icon_sz / 2.0, icon_sz, icon_col);
 
-            // Label
-            let label   = action.label();
-            let label_sz = 13.0f32;
-            let lw      = self.measure_text(label, label_sz);
-            let lc      = if selected { hex(FG) } else { hex(DIM) };
-            self.blit_text(pm, label, cx + (card_w - lw) / 2.0, cy + card_h - 26.0, label_sz, lc);
-
-            // Shortcut number
-            let num = format!("{}", i + 1);
-            let nc  = if selected { hex(ACCENT) } else { hex(BORDER) };
-            self.blit_text(pm, &num, cx + 8.0, cy + 8.0, 10.5, nc);
-
-            zones.push(ClickZone { action_idx: i, x0: cx, y0: cy, x1: cx + card_w, y1: cy + card_h });
+            zones.push(ClickZone {
+                action_idx: i,
+                x0: cx - btn_radius,
+                y0: cy - btn_radius,
+                x1: cx + btn_radius,
+                y1: cy + btn_radius,
+            });
         }
     }
 
@@ -512,6 +494,39 @@ fn draw_rrect(pm: &mut Pixmap, x: f32, y: f32, w: f32, h: f32, r: f32, color: Co
 
 fn draw_rrect_stroke(pm: &mut Pixmap, x: f32, y: f32, w: f32, h: f32, r: f32, color: Color, width: f32) {
     if let Some(path) = rrect_path(x + 0.5, y + 0.5, w - 1.0, h - 1.0, r) {
+        let mut stroke = Stroke::default();
+        stroke.width = width;
+        pm.stroke_path(&path, &paint_col(color, true), &stroke, Transform::identity(), None);
+    }
+}
+
+fn draw_circle(pm: &mut Pixmap, cx: f32, cy: f32, r: f32, color: Color) {
+    let mut pb = PathBuilder::new();
+    // Approximate circle with bezier curves
+    let k = 0.55228475; // magic constant for circular bezier approximation
+    let r_k = r * k;
+    pb.move_to(cx + r, cy);
+    pb.cubic_to(cx + r, cy + r_k, cx + r_k, cy + r, cx, cy + r);
+    pb.cubic_to(cx - r_k, cy + r, cx - r, cy + r_k, cx - r, cy);
+    pb.cubic_to(cx - r, cy - r_k, cx - r_k, cy - r, cx, cy - r);
+    pb.cubic_to(cx + r_k, cy - r, cx + r, cy - r_k, cx + r, cy);
+    pb.close();
+    if let Some(path) = pb.finish() {
+        pm.fill_path(&path, &paint_col(color, true), FillRule::Winding, Transform::identity(), None);
+    }
+}
+
+fn draw_circle_stroke(pm: &mut Pixmap, cx: f32, cy: f32, r: f32, color: Color, width: f32) {
+    let mut pb = PathBuilder::new();
+    let k = 0.55228475;
+    let r_k = r * k;
+    pb.move_to(cx + r, cy);
+    pb.cubic_to(cx + r, cy + r_k, cx + r_k, cy + r, cx, cy + r);
+    pb.cubic_to(cx - r_k, cy + r, cx - r, cy + r_k, cx - r, cy);
+    pb.cubic_to(cx - r, cy - r_k, cx - r_k, cy - r, cx, cy - r);
+    pb.cubic_to(cx + r_k, cy - r, cx + r, cy - r_k, cx + r, cy);
+    pb.close();
+    if let Some(path) = pb.finish() {
         let mut stroke = Stroke::default();
         stroke.width = width;
         pm.stroke_path(&path, &paint_col(color, true), &stroke, Transform::identity(), None);

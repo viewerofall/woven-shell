@@ -1,14 +1,9 @@
 # woven-wall config — ~/.config/woven-shell/wall.toml
 
 [wallpaper]
-type = "image"
-path = "~/Pictures/Wallpapers/Patterns.png"
-
-# ── Slideshow ────────────────────────────────────────────────────────────────
-# [wallpaper]
-# type            = "slideshow"
-# dir             = "~/Pictures/Wallpapers"
-# interval        = 300
-# transition      = "pixelate"
-# transition_secs = 1.5
-# shuffle         = false
+type            = "slideshow"
+dir             = "~/Pictures/Wallpapers"
+interval        = 300
+transition      = "pixelate"
+transition_secs = 1.5
+shuffle         = false

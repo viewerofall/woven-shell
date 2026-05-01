@@ -73,31 +73,61 @@ fn main() -> Result<()> {
 
 fn apply_wallpaper(path: &PathBuf) -> Result<()> {
     let display_path = path.display().to_string();
-
-    // normalise to ~/... form if possible
     let home = std::env::var("HOME").unwrap_or_default();
+
+    // Load existing config to preserve mode
+    let live_path = format!("{home}/.config/woven-shell/wall.toml");
+    let existing_config = std::fs::read_to_string(&live_path).unwrap_or_default();
+
+    // Check if currently in slideshow mode
+    let is_slideshow = existing_config.contains("type = \"slideshow\"");
+
+    // Normalize path to ~/... form if possible
     let toml_path = if display_path.starts_with(&home) {
         format!("~{}", &display_path[home.len()..])
     } else {
         display_path.clone()
     };
 
-    let toml_content = format!(
-        "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
-         \n\
-         [wallpaper]\n\
-         type = \"image\"\n\
-         path = \"{toml_path}\"\n\
-         \n\
-         # ── Slideshow ────────────────────────────────────────────────────────────────\n\
-         # [wallpaper]\n\
-         # type            = \"slideshow\"\n\
-         # dir             = \"~/Pictures/Wallpapers\"\n\
-         # interval        = 300\n\
-         # transition      = \"pixelate\"\n\
-         # transition_secs = 1.5\n\
-         # shuffle         = false\n"
-    );
+    // Get the selected image's parent directory for slideshow mode
+    let selected_dir = if let Some(parent) = path.parent() {
+        let parent_str = parent.display().to_string();
+        if parent_str.starts_with(&home) {
+            format!("~{}", &parent_str[home.len()..])
+        } else {
+            parent_str
+        }
+    } else {
+        toml_path.clone()
+    };
+
+    let toml_content = if is_slideshow {
+        // Preserve slideshow mode, update directory
+        format!(
+            "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
+             \n\
+             [wallpaper]\n\
+             type            = \"slideshow\"\n\
+             dir             = \"{selected_dir}\"\n\
+             interval        = 300\n\
+             transition      = \"pixelate\"\n\
+             transition_secs = 1.5\n\
+             shuffle         = false\n"
+        )
+    } else {
+        // Use slideshow mode by default when picking
+        format!(
+            "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
+             \n\
+             [wallpaper]\n\
+             type            = \"slideshow\"\n\
+             dir             = \"{selected_dir}\"\n\
+             interval        = 300\n\
+             transition      = \"pixelate\"\n\
+             transition_secs = 1.5\n\
+             shuffle         = false\n"
+        )
+    };
 
     // write repo config
     let repo_path = format!("{home}/woven-shell/config/wall.toml");
@@ -105,7 +135,6 @@ fn apply_wallpaper(path: &PathBuf) -> Result<()> {
     tracing::info!("pick: wrote {repo_path}");
 
     // copy to live config
-    let live_path = format!("{home}/.config/woven-shell/wall.toml");
     std::fs::write(&live_path, &toml_content)?;
     tracing::info!("pick: wrote {live_path}");
 
