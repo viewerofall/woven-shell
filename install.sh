@@ -80,6 +80,31 @@ install_themes() {
     fi
 }
 
+install_desktop() {
+    local icon_src="$REPO_DIR/woven-shell-cfg.png"
+    local icon_dst="$HOME/.local/share/icons/woven-shell-cfg.png"
+    local desktop_dst="$HOME/.local/share/applications/woven-cfg.desktop"
+
+    if [[ -f "$icon_src" ]]; then
+        mkdir -p "$HOME/.local/share/icons"
+        cp "$icon_src" "$icon_dst"
+        ok "Installed $icon_dst"
+    fi
+
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$desktop_dst" <<EOF
+[Desktop Entry]
+Name=Woven Shell Config
+Comment=Configure Woven Shell components
+Exec=$BIN_DIR/woven-cfg
+Icon=$icon_dst
+Type=Application
+Categories=Settings;
+Terminal=false
+EOF
+    ok "Installed $desktop_dst"
+}
+
 # ── Package mode ──────────────────────────────────────────────────────────────
 
 make_package() {
@@ -100,6 +125,7 @@ make_package() {
     cp -r "$REPO_DIR/config/." "$pkg_dir/config/"
     cp "$REPO_DIR/install.sh" "$pkg_dir/"
     cp "$REPO_DIR/README.md" "$pkg_dir/" 2>/dev/null || true
+    cp "$REPO_DIR/woven-shell-cfg.png" "$pkg_dir/" 2>/dev/null || true
 
     tar -czf "$tar_out" -C "$REPO_DIR/dist" woven-shell
     rm -rf "$pkg_dir"
@@ -153,6 +179,7 @@ if [[ -n "$INSTALL_ONE" ]]; then
 
     build_component "$INSTALL_ONE"
     install_component "$INSTALL_ONE"
+    [[ "$INSTALL_ONE" == "woven-cfg" ]] && install_desktop
 
 elif $INSTALL_ALL; then
     for name in "${COMPONENTS[@]}"; do
@@ -160,6 +187,7 @@ elif $INSTALL_ALL; then
         install_component "$name"
     done
     install_themes
+    install_desktop
     echo ""
     bold "Done. Launching config manager..."
     "$BIN_DIR/woven-cfg" 2>/dev/null &
@@ -187,6 +215,9 @@ else
         install_component "$name"
     done
     install_themes
+    for name in "${TO_BUILD[@]}"; do
+        [[ "$name" == "woven-cfg" ]] && install_desktop && break
+    done
 fi
 
 echo ""

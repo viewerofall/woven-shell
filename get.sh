@@ -93,11 +93,37 @@ install_themes() {
     fi
 }
 
+install_desktop() {
+    icon_src="$SRC/woven-shell-cfg.png"
+    icon_dst="$HOME/.local/share/icons/woven-shell-cfg.png"
+    desktop_dst="$HOME/.local/share/applications/woven-cfg.desktop"
+
+    if [ -f "$icon_src" ]; then
+        mkdir -p "$HOME/.local/share/icons"
+        cp "$icon_src" "$icon_dst"
+        echo "  ✓ $icon_dst"
+    fi
+
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$desktop_dst" <<EOF
+[Desktop Entry]
+Name=Woven Shell Config
+Comment=Configure Woven Shell components
+Exec=$BINDIR/woven-cfg
+Icon=$HOME/.local/share/icons/woven-shell-cfg.png
+Type=Application
+Categories=Settings;
+Terminal=false
+EOF
+    echo "  ✓ $desktop_dst"
+}
+
 echo ""
 
 if [ -n "$INSTALL_ONE" ]; then
     echo "==> Installing $INSTALL_ONE..."
     install_one "$INSTALL_ONE"
+    [ "$INSTALL_ONE" = "woven-cfg" ] && install_desktop
 
 elif $INSTALL_ALL; then
     echo "==> Installing all components..."
@@ -105,6 +131,7 @@ elif $INSTALL_ALL; then
         install_one "$name"
     done
     install_themes
+    install_desktop
     echo ""
     echo "==> Launching config manager..."
     "$BINDIR/woven-cfg" 2>/dev/null &
@@ -132,6 +159,9 @@ else
         install_one "$name"
     done
     install_themes
+    for name in $TO_INSTALL; do
+        [ "$name" = "woven-cfg" ] && install_desktop && break
+    done
 fi
 
 echo ""
