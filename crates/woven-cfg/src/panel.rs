@@ -259,7 +259,7 @@ impl Panel {
             accent:     TextInput::new(&bar.theme.accent),
             dim:        TextInput::new(&bar.theme.dim),
             font_size:  TextInput::new(bar.theme.font_size.to_string()),
-            use_bubbles:     Toggle::new(false),
+            use_bubbles:     Toggle::new(bar.style == "bubbles"),
             wallpaper_theme: Toggle::new(bar.theme_source == "wallpaper"),
         };
 
@@ -651,6 +651,7 @@ impl Panel {
         b.theme.dim        = self.bar_inputs.dim.value.trim().to_string();
         if let Ok(v) = self.bar_inputs.font_size.value.trim().parse::<f32>() { b.theme.font_size = v; }
         b.theme_source = if self.bar_inputs.wallpaper_theme.value { "wallpaper" } else { "config" }.into();
+        b.style = if self.bar_inputs.use_bubbles.value { "bubbles" } else { "solid" }.into();
 
         let w = &mut self.cfg.wall.wallpaper;
         w.kind   = self.wall_inputs.kind.clone();

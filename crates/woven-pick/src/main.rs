@@ -75,35 +75,86 @@ fn apply_wallpaper(path: &PathBuf) -> Result<()> {
     let display_path = path.display().to_string();
     let home = std::env::var("HOME").unwrap_or_default();
 
-    // Load existing config to preserve mode
     let live_path = format!("{home}/.config/woven-shell/wall.toml");
     let existing_config = std::fs::read_to_string(&live_path).unwrap_or_default();
 
-    // Check if currently in slideshow mode
-    let is_slideshow = existing_config.contains("type = \"slideshow\"");
+    let is_slideshow = existing_config.lines().any(|l| {
+        let l = l.trim();
+        l.starts_with("type") && l.contains("\"slideshow\"")
+    });
 
-    // Normalize path to ~/... form if possible
-    let toml_path = if display_path.starts_with(&home) {
-        format!("~{}", &display_path[home.len()..])
+    // Get the selected image's parent directory (normalized)
+    let selected_dir = if let Some(parent) = path.parent() {
+        let s = parent.display().to_string();
+        if s.starts_with(&home) { format!("~{}", &s[home.len()..]) } else { s }
     } else {
-        display_path.clone()
+        "~/Pictures/Wallpapers".to_string()
     };
 
-    // Get the selected image's parent directory for slideshow mode
-    let selected_dir = if let Some(parent) = path.parent() {
-        let parent_str = parent.display().to_string();
-        if parent_str.starts_with(&home) {
-            format!("~{}", &parent_str[home.len()..])
+    if is_slideshow {
+        // Extract current dir from config — reuse same parsing as read_dir_from_config
+        let current_dir = existing_config.lines()
+            .find(|l| l.trim().starts_with("dir"))
+            .and_then(|l| l.splitn(2, '=').nth(1))
+            .map(|v| v.trim().trim_matches('"').to_string())
+            .unwrap_or_default();
+
+        // Normalize both to absolute paths for comparison
+        let current_abs = if current_dir.starts_with('~') {
+            format!("{home}{}", &current_dir[1..])
         } else {
-            parent_str
+            current_dir.clone()
+        };
+        let selected_abs = if selected_dir.starts_with('~') {
+            format!("{home}{}", &selected_dir[1..])
+        } else {
+            selected_dir.clone()
+        };
+        let same_dir = current_abs.trim_end_matches('/') == selected_abs.trim_end_matches('/');
+
+        if same_dir {
+            // Same directory — just IPC set to jump to this image, slideshow continues
+            tracing::info!("pick: same dir ({current_dir}), skipping config rewrite");
+        } else {
+            // Directory changed — rewrite config preserving other settings
+            let shuffle = if existing_config.lines().any(|l| {
+                let l = l.trim(); l.starts_with("shuffle") && l.contains("true")
+            }) { "true" } else { "false" };
+            let interval = existing_config.lines()
+                .find(|l| l.trim().starts_with("interval"))
+                .and_then(|l| l.splitn(2, '=').nth(1))
+                .map(|v| v.trim().to_string())
+                .unwrap_or_else(|| "300".to_string());
+            let transition = existing_config.lines()
+                .find(|l| l.trim().starts_with("transition") && !l.contains("transition_secs"))
+                .and_then(|l| l.splitn(2, '=').nth(1))
+                .map(|v| v.trim().trim_matches('"').to_string())
+                .unwrap_or_else(|| "pixelate".to_string());
+            let transition_secs = existing_config.lines()
+                .find(|l| l.trim().starts_with("transition_secs"))
+                .and_then(|l| l.splitn(2, '=').nth(1))
+                .map(|v| v.trim().to_string())
+                .unwrap_or_else(|| "1.5".to_string());
+
+            let content = format!(
+                "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
+                 \n\
+                 [wallpaper]\n\
+                 type            = \"slideshow\"\n\
+                 dir             = \"{selected_dir}\"\n\
+                 interval        = {interval}\n\
+                 transition      = \"{transition}\"\n\
+                 transition_secs = {transition_secs}\n\
+                 shuffle         = {shuffle}\n"
+            );
+            let repo_path = format!("{home}/woven-shell/config/wall.toml");
+            std::fs::write(&repo_path, &content)?;
+            std::fs::write(&live_path, &content)?;
+            tracing::info!("pick: dir changed → rewrote config");
         }
     } else {
-        toml_path.clone()
-    };
-
-    let toml_content = if is_slideshow {
-        // Preserve slideshow mode, update directory
-        format!(
+        // Was static image — switch to slideshow mode
+        let content = format!(
             "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
              \n\
              [wallpaper]\n\
@@ -113,32 +164,14 @@ fn apply_wallpaper(path: &PathBuf) -> Result<()> {
              transition      = \"pixelate\"\n\
              transition_secs = 1.5\n\
              shuffle         = false\n"
-        )
-    } else {
-        // Use slideshow mode by default when picking
-        format!(
-            "# woven-wall config — ~/.config/woven-shell/wall.toml\n\
-             \n\
-             [wallpaper]\n\
-             type            = \"slideshow\"\n\
-             dir             = \"{selected_dir}\"\n\
-             interval        = 300\n\
-             transition      = \"pixelate\"\n\
-             transition_secs = 1.5\n\
-             shuffle         = false\n"
-        )
-    };
+        );
+        let repo_path = format!("{home}/woven-shell/config/wall.toml");
+        std::fs::write(&repo_path, &content)?;
+        std::fs::write(&live_path, &content)?;
+        tracing::info!("pick: was static, switched to slideshow");
+    }
 
-    // write repo config
-    let repo_path = format!("{home}/woven-shell/config/wall.toml");
-    std::fs::write(&repo_path, &toml_content)?;
-    tracing::info!("pick: wrote {repo_path}");
-
-    // copy to live config
-    std::fs::write(&live_path, &toml_content)?;
-    tracing::info!("pick: wrote {live_path}");
-
-    // send IPC to running woven-wall daemon
+    // Always IPC the specific image to show it immediately
     let sock = format!("{}/woven-wall.sock",
         std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into()));
     match UnixStream::connect(&sock) {

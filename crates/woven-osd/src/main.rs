@@ -58,8 +58,20 @@ fn daemon_alive() -> bool {
 fn client_send(cmd: &str) -> Result<()> {
     use std::io::Write;
     use std::os::unix::net::UnixStream;
+
+    // Auto-start daemon if not running, then retry
+    if !daemon_alive() {
+        std::process::Command::new(std::env::current_exe()?)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()?;
+        // Give it a moment to bind the socket
+        std::thread::sleep(std::time::Duration::from_millis(150));
+    }
+
     let mut s = UnixStream::connect(SOCK)
-        .map_err(|_| anyhow::anyhow!("osd: daemon not running — start with `woven-osd`"))?;
+        .map_err(|_| anyhow::anyhow!("osd: daemon failed to start"))?;
     s.write_all(format!("{cmd}\n").as_bytes())?;
     Ok(())
 }

@@ -34,7 +34,7 @@ label    = "Power menu"
 [[bind]]
 category = "apps"
 key      = "$mod+b"
-action   = "exec firefox"
+action   = "exec helium-browser"
 label    = "Browser"
 
 [[bind]]
@@ -352,19 +352,19 @@ label    = "Move to workspace 10"
 [[bind]]
 category = "media"
 key      = "XF86AudioMute"
-action   = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+action   = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && /home/abyss/.local/bin/woven-osd volume"
 label    = "Mute"
 
 [[bind]]
 category = "media"
 key      = "XF86AudioLowerVolume"
-action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && /home/abyss/.local/bin/woven-osd volume"
 label    = "Volume down"
 
 [[bind]]
 category = "media"
 key      = "XF86AudioRaiseVolume"
-action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+action   = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && /home/abyss/.local/bin/woven-osd volume"
 label    = "Volume up"
 
 [[bind]]
@@ -388,13 +388,13 @@ label    = "Previous track"
 [[bind]]
 category = "media"
 key      = "XF86MonBrightnessUp"
-action   = "exec brightnessctl set 10%+"
+action   = "exec brightnessctl set 10%+ && /home/abyss/.local/bin/woven-osd bright"
 label    = "Brightness up"
 
 [[bind]]
 category = "media"
 key      = "XF86MonBrightnessDown"
-action   = "exec brightnessctl set 10%-"
+action   = "exec brightnessctl set 10%- && /home/abyss/.local/bin/woven-osd bright"
 label    = "Brightness down"
 
 [[bind]]

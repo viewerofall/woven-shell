@@ -282,6 +282,15 @@ impl SlideshowSource {
         self.transition_start = None;
         match image::open(path) {
             Ok(img) => {
+                // Update order_pos so slideshow continues from this image
+                let path_buf = PathBuf::from(path);
+                if let Some(img_idx) = self.images.iter().position(|p| p == &path_buf) {
+                    if let Some(pos) = self.order.iter().position(|&x| x == img_idx) {
+                        // Set one before so finish_transition's advance_index() lands here
+                        let len = self.order.len();
+                        self.order_pos = (pos + len - 1) % len;
+                    }
+                }
                 self.next = Some(CachedImage::new(img));
                 self.transition_start = Some(Instant::now());
                 tracing::info!("slideshow: IPC set → {path}");

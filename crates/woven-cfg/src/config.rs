@@ -24,6 +24,8 @@ pub struct BarCfg {
     pub height: u32,
     #[serde(default = "default_position")]
     pub position: String,
+    #[serde(default = "def_style")]
+    pub style: String,
     #[serde(default)]
     pub theme_source: String,
     #[serde(default)]
@@ -62,6 +64,7 @@ pub struct ModulesCfg {
 
 fn default_bar_height() -> u32 { 34 }
 fn default_position()   -> String { "top".into() }
+fn def_style()          -> String { "bubbles".into() }
 fn def_bg()       -> String { "#0a0010".into() }
 fn def_fg()       -> String { "#cdd6f4".into() }
 fn def_accent()   -> String { "#c792ea".into() }
@@ -78,6 +81,7 @@ impl Default for BarCfg {
         Self {
             height: 34,
             position: "top".into(),
+            style: "bubbles".into(),
             theme_source: "config".into(),
             theme: BarTheme::default(),
             bubbles: BubblesCfg::default(),

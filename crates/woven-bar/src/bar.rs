@@ -150,7 +150,26 @@ struct ClickZone {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+const PIDFILE: &str = "/tmp/woven-bar.pid";
+
+fn enforce_single_instance() {
+    let my_pid = std::process::id();
+    // Read existing pidfile and kill the old instance if alive
+    if let Ok(s) = std::fs::read_to_string(PIDFILE) {
+        if let Ok(old_pid) = s.trim().parse::<u32>() {
+            if old_pid != my_pid {
+                // SIGTERM the old bar process; ignore errors (it may already be dead)
+                unsafe { libc::kill(old_pid as i32, libc::SIGTERM); }
+                // Give it a moment to die before we claim the display resources
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+        }
+    }
+    let _ = std::fs::write(PIDFILE, my_pid.to_string());
+}
+
 pub fn run(mut cfg: BarConfig) -> Result<()> {
+    enforce_single_instance();
     let rt = Runtime::new()?;
 
     let (mouse_tx, mouse_rx) = unbounded::<MouseEvent>();
@@ -173,7 +192,7 @@ pub fn run(mut cfg: BarConfig) -> Result<()> {
 
     // Pre-compute bubble groupings from separator positions
     let mut left_groups   = compute_groups(&cfg.modules.left);
-    let mut center_groups = compute_groups(&cfg.modules.center);
+    let mut center_groups = compute_center_groups(&cfg.modules.center);
     let mut right_groups  = compute_groups(&cfg.modules.right);
 
     let mut text       = TextRenderer::new();
@@ -295,7 +314,7 @@ pub fn run(mut cfg: BarConfig) -> Result<()> {
                         center = build_widgets(&cfg.modules.center, &cfg);
                         right  = build_widgets(&cfg.modules.right, &cfg);
                         left_groups   = compute_groups(&cfg.modules.left);
-                        center_groups = compute_groups(&cfg.modules.center);
+                        center_groups = compute_center_groups(&cfg.modules.center);
                         right_groups  = compute_groups(&cfg.modules.right);
                         anim = AnimState::new_intro(left_groups.len(), center_groups.len(), right_groups.len());
                     }
@@ -341,10 +360,12 @@ pub fn run(mut cfg: BarConfig) -> Result<()> {
 
 /// Split a module list at Separator markers into groups of contiguous widget indices.
 /// Each group is a Vec of indices into the widget list (which has separators removed).
+/// For center modules, each module gets its own group (individual bubbles).
 fn compute_groups(modules: &[ModuleKind]) -> Vec<Vec<usize>> {
     let mut groups: Vec<Vec<usize>> = Vec::new();
     let mut current: Vec<usize> = Vec::new();
     let mut widget_idx = 0usize;
+    let is_center = false; // we'll determine this from context differently
 
     for kind in modules {
         if *kind == ModuleKind::Separator {
@@ -362,6 +383,20 @@ fn compute_groups(modules: &[ModuleKind]) -> Vec<Vec<usize>> {
     // if no separators were used, put everything in one group
     if groups.is_empty() && widget_idx > 0 {
         groups.push((0..widget_idx).collect());
+    }
+    groups
+}
+
+/// Compute groups for center modules — each module gets its own bubble.
+fn compute_center_groups(modules: &[ModuleKind]) -> Vec<Vec<usize>> {
+    let mut groups: Vec<Vec<usize>> = Vec::new();
+    let mut widget_idx = 0usize;
+
+    for kind in modules {
+        if *kind != ModuleKind::Separator {
+            groups.push(vec![widget_idx]);
+            widget_idx += 1;
+        }
     }
     groups
 }
@@ -531,7 +566,58 @@ fn render_bubbles(
     let bubble_h = height as f32 - margin * 2.0;
     let bubble_y = margin;
 
-    // ── Left bubbles ─────────────────────────────────────────────────────────
+    // ── Pre-measure all zones to calculate layout ─────────────────────────────
+
+    // Measure left: starts at gap, each group adds (group_w + pad*2 + gap)
+    let mut left_boundary = gap;
+    for group in left_groups {
+        let widths: Vec<f32> = group.iter()
+            .map(|&i| left[i].width(ctx.theme, ctx.text) as f32)
+            .collect();
+        let visible: Vec<f32> = widths.iter().copied().filter(|w| *w > 0.0).collect();
+        if visible.is_empty() { continue; }
+        let group_w: f32 = visible.iter().sum::<f32>()
+            + inner_gap * visible.len().saturating_sub(1) as f32;
+        left_boundary += group_w + pad * 2.0 + gap;
+    }
+
+    // Measure right: original formula — gap*N includes trailing gap on rightmost
+    let mut right_group_info: Vec<(&Vec<usize>, f32, Vec<(usize, f32)>)> = Vec::new();
+    for group in right_groups {
+        let widths: Vec<f32> = group.iter()
+            .map(|&i| right[i].width(ctx.theme, ctx.text) as f32)
+            .collect();
+        let visible: Vec<(usize, f32)> = widths.iter().copied().enumerate()
+            .filter(|(_, w)| *w > 0.0).collect();
+        if visible.is_empty() { continue; }
+        let group_w: f32 = visible.iter().map(|(_, w)| w).sum::<f32>()
+            + inner_gap * visible.len().saturating_sub(1) as f32;
+        right_group_info.push((group, group_w, visible));
+    }
+    let total_right_w: f32 = right_group_info.iter()
+        .map(|(_, gw, _)| gw + pad * 2.0)
+        .sum::<f32>()
+        + gap * right_group_info.len() as f32;
+    let right_boundary = width as f32 - total_right_w;
+
+    // Measure center: each visible widget is its own bubble, gap between bubbles only
+    let mut center_widths: Vec<f32> = Vec::new();
+    let mut visible_center: Vec<usize> = Vec::new();
+    let mut center_total = 0.0f32;
+    for (i, w) in center.iter().enumerate() {
+        let ww = w.width(ctx.theme, ctx.text) as f32;
+        if ww > 0.0 {
+            if !visible_center.is_empty() { center_total += gap; }
+            center_total += ww + pad * 2.0;
+            center_widths.push(ww);
+            visible_center.push(i);
+        }
+    }
+
+    // Center relative to full screen width, clamped to not overlap left
+    let center_x = ((width as f32 / 2.0) - (center_total / 2.0)).max(left_boundary);
+
+    // ── Render left bubbles ──────────────────────────────────────────────────
     let mut x = gap;
     let mut left_ai = 0usize;
     for group in left_groups {
@@ -564,26 +650,30 @@ fn render_bubbles(
         x += group_w + pad * 2.0 + gap;
     }
 
-    // ── Right bubbles (measure all first, render right-to-left) ──────────────
-    let mut right_group_info: Vec<(&Vec<usize>, f32, Vec<(usize, f32)>)> = Vec::new();
-    for group in right_groups {
-        let widths: Vec<f32> = group.iter()
-            .map(|&i| right[i].width(ctx.theme, ctx.text) as f32)
-            .collect();
-        let visible: Vec<(usize, f32)> = widths.iter().copied().enumerate()
-            .filter(|(_, w)| *w > 0.0).collect();
-        if visible.is_empty() { continue; }
-        let group_w: f32 = visible.iter().map(|(_, w)| w).sum::<f32>()
-            + inner_gap * visible.len().saturating_sub(1) as f32;
-        right_group_info.push((group, group_w, visible));
+    // ── Render center bubbles — each module gets its own bubble ──────────────
+    let mut cx = center_x.max(left_boundary);
+    let mut center_ai = 0usize;
+    for (vi, &widget_idx) in visible_center.iter().enumerate() {
+        let ww = center_widths[vi];
+        let a = anim.center.get(center_ai).cloned().unwrap_or(BubbleAnim { opacity: 1.0, slide: 0.0, target_opacity: 1.0, target_slide: 0.0, delay_s: 0.0 });
+        center_ai += 1;
+        let bx = cx + a.slide;
+
+        // Individual bubble for each module
+        fill_rounded_rect(ctx.pixmap, bx, bubble_y, ww + pad * 2.0, bubble_h, radius, with_opacity(bubble_bg, a.opacity));
+
+        let wx = bx + pad;
+        let x0 = wx;
+        if a.opacity > 0.1 {
+            center[widget_idx].render(ctx, wx);
+        }
+        zones.push(ClickZone { x0, x1: wx + ww, zone: Zone::Center, idx: widget_idx });
+
+        cx += ww + pad * 2.0 + gap;
     }
 
-    let total_right_w: f32 = right_group_info.iter()
-        .map(|(_, gw, _)| gw + pad * 2.0)
-        .sum::<f32>()
-        + gap * right_group_info.len() as f32;
-
-    let mut rx = width as f32 - total_right_w;
+    // ── Render right bubbles ─────────────────────────────────────────────────
+    let mut rx = right_boundary;
     let mut right_ai = 0usize;
     for (group, group_w, visible) in &right_group_info {
         let a = anim.right.get(right_ai).cloned().unwrap_or(BubbleAnim { opacity: 1.0, slide: 0.0, target_opacity: 1.0, target_slide: 0.0, delay_s: 0.0 });
@@ -604,46 +694,6 @@ fn render_bubbles(
         }
 
         rx += group_w + pad * 2.0 + gap;
-    }
-
-    // ── Center bubbles ───────────────────────────────────────────────────────
-    let mut center_total = 0.0f32;
-    let mut center_info: Vec<(&Vec<usize>, f32, Vec<(usize, f32)>)> = Vec::new();
-    for group in center_groups {
-        let widths: Vec<f32> = group.iter()
-            .map(|&i| center[i].width(ctx.theme, ctx.text) as f32)
-            .collect();
-        let visible: Vec<(usize, f32)> = widths.iter().copied().enumerate()
-            .filter(|(_, w)| *w > 0.0).collect();
-        if visible.is_empty() { continue; }
-        let group_w: f32 = visible.iter().map(|(_, w)| w).sum::<f32>()
-            + inner_gap * visible.len().saturating_sub(1) as f32;
-        center_total += group_w + pad * 2.0 + gap;
-        center_info.push((group, group_w, visible));
-    }
-    center_total -= gap;
-
-    let mut cx = (width as f32 / 2.0 - center_total / 2.0).max(x);
-    let mut center_ai = 0usize;
-    for (group, group_w, visible) in &center_info {
-        let a = anim.center.get(center_ai).cloned().unwrap_or(BubbleAnim { opacity: 1.0, slide: 0.0, target_opacity: 1.0, target_slide: 0.0, delay_s: 0.0 });
-        center_ai += 1;
-        let bx = cx + a.slide;
-
-        fill_rounded_rect(ctx.pixmap, bx, bubble_y, group_w + pad * 2.0, bubble_h, radius, with_opacity(bubble_bg, a.opacity));
-
-        let mut wx = bx + pad;
-        for (vi, ww) in visible {
-            let widget_idx = group[*vi];
-            let x0 = wx;
-            if a.opacity > 0.1 {
-                center[widget_idx].render(ctx, wx);
-            }
-            zones.push(ClickZone { x0, x1: wx + ww, zone: Zone::Center, idx: widget_idx });
-            wx += ww + inner_gap;
-        }
-
-        cx += group_w + pad * 2.0 + gap;
     }
 }
 

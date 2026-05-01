@@ -80,7 +80,19 @@ pub fn render(panel: &mut Panel, pm: &mut Pixmap, w: f32) {
                p_focused, pad * 2.0 + fw, y, fw, 40.0);
     panel.zones.push(Zone { x0: pad * 2.0 + fw, y0: y, x1: pad * 2.0 + fw * 2.0, y1: y + 40.0,
                             action: ZoneAction::BarFieldFocus(BarField::Position) });
-    y += 48.0;
+    y += 52.0;
+
+    // ── Style toggles ─────────────────────────────────────────────────────────
+    for (label, val, action) in [
+        ("Bubbles style",     panel.bar_inputs.use_bubbles.value,     ZoneAction::BarToggle(BarToggleField::Bubbles)),
+        ("Wallpaper theme",   panel.bar_inputs.wallpaper_theme.value, ZoneAction::BarToggle(BarToggleField::WallpaperTheme)),
+    ] {
+        draw_text(pm, font, label, pad, y + 4.0, 12.0, FG);
+        draw_toggle(pm, pad + 160.0, y + 1.0, val);
+        panel.zones.push(Zone { x0: pad, y0: y, x1: pad + 200.0, y1: y + 22.0, action });
+        y += 28.0;
+    }
+    let _ = y;
 }
 
 fn section_header(pm: &mut Pixmap, font: &fontdue::Font, label: &str, x: f32, y: f32) {

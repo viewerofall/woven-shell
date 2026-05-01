@@ -16,6 +16,7 @@ pub async fn run_command(args: &[String]) -> Result<()> {
         "run" => cmd_run().await,
         "status" => cmd_status(),
         "reload" => cmd_reload(),
+        "restart" => cmd_restart(),
         "quit" => cmd_quit(),
 
         // Media
@@ -107,6 +108,40 @@ fn cmd_reload() -> Result<()> {
 fn cmd_quit() -> Result<()> {
     println!("Shutting down session...");
     query_session("quit")?;
+    Ok(())
+}
+
+fn cmd_restart() -> Result<()> {
+    println!("Restarting woven shell...");
+
+    // Kill all woven daemons except ourselves (woven-session)
+    let daemons = ["woven-bar", "woven-wall", "woven-osd", "woven-power",
+                   "woven-pick", "woven-cfg", "woven-lock", "woven-ctrl"];
+    for name in &daemons {
+        let _ = Command::new("pkill").args(["-x", name]).output();
+    }
+
+    // Give processes time to die
+    std::thread::sleep(std::time::Duration::from_millis(400));
+
+    let bin = "/home/abyss/.local/bin";
+
+    // Respawn persistent daemons
+    spawn_daemon(&format!("{bin}/woven-bar"))?;
+    spawn_daemon(&format!("{bin}/woven-wall"))?;
+    spawn_daemon(&format!("{bin}/woven-osd"))?;
+
+    println!("woven shell restarted.");
+    Ok(())
+}
+
+fn spawn_daemon(path: &str) -> Result<()> {
+    Command::new(path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| anyhow::anyhow!("failed to spawn {path}: {e}"))?;
     Ok(())
 }
 
@@ -362,6 +397,7 @@ COMMANDS
   Session:
     status                         # Show all current state
     reload                         # Reload session
+    restart                        # Kill and respawn all woven daemons
     quit                           # Graceful shutdown
 
   Meta:
