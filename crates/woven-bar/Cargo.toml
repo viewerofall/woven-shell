@@ -30,4 +30,4 @@ wayland-protocols-wlr  = { workspace = true }
 png  = "0.17"
 toml = "0.8"
 libc = "0.2"
-ureq = "3"
+ureq = "3.3"
